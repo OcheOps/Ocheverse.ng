@@ -23,7 +23,7 @@ jobs:
           script: |
             echo "Starting deployment..."
 
-            cd /usr/ocheg/ocheverse 
+            cd /usr/ocheg/Ocheverse.ng
 
             echo "Pulling latest changes..."
             git pull origin main

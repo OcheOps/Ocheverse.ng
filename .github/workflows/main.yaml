@@ -23,7 +23,7 @@ jobs:
           script: |
             echo "Starting deployment..."
 
-            cd /usr/app/ocheverse  # adjust path if needed
+            cd /usr/ocheg/ocheverse 
 
             echo "Pulling latest changes..."
             git pull origin main

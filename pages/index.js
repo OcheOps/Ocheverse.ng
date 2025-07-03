@@ -6,7 +6,29 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>David Gideon – Ocheverse</title>
+  <title>Oche – DevOps Engineer | Ocheverse|Solutions Architect</title>
+  <meta name="description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions at Ocheverse." />
+  <meta name="keywords" content="DevOps, Cloud, SRE, Automation, Oche,Infra Projects, David Gideon, Ocheverse" />
+  <meta name="author" content="David Ndifrekeabasi Gideon" />
+  <meta name="robots" content="index, follow" />
+
+  
+
+  {/* Open Graph (for social media preview) */}
+  <meta property="og:title" content="David Gideon – DevOps Engineer/Solutions Architect | Ocheverse" />
+  <meta property="og:description" content="Explore DevOps tools, cloud infrastructure, and brutally honest engineering stories from the field." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ocheverse.ng" />
+  <meta property="og:image" content="https://ocheverse.ng/cover.png" />
+
+  {/* Twitter card */}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:creator" content="@ochecodes" />
+  <meta name="twitter:title" content="David Gideon – DevOps Engineer | Ocheverse" />
+  <meta name="twitter:description" content="Explore DevOps tools, cloud infrastructure, and brutally honest engineering stories from the field." />
+  <meta name="twitter:image" content="https://ocheverse.ng/cover.png" />
+
+  <link rel="canonical" href="https://ocheverse.ng" />
       </Head>
       <main className="p-6 max-w-5xl mx-auto text-gray-900 dark:text-gray-100 bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-gray-800">
         <section className="text-center py-16">

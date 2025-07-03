@@ -1,0 +1,54 @@
+name: Ocheverse CI/CD
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 200m
+          script: |
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              APP_DIR="/usr/ocheg/ocheverse"
+              APP_PORT=6065
+              CONTAINER_NAME="ocheverse"
+
+            echo "Deploying branch: ${{ github.ref }}"
+            cd $APP_DIR
+
+            echo "Pulling latest code..."
+            git pull origin $(basename ${{ github.ref }})
+
+            echo "Building Docker image..."
+            docker build -t $CONTAINER_NAME:latest .
+
+            echo "Stopping old container if it exists..."
+            docker rm -f $CONTAINER_NAME || true
+
+            echo "Running new container..."
+            docker run --name $CONTAINER_NAME \
+              -d -p $APP_PORT:6065 \
+              $CONTAINER_NAME:latest
+
+            echo "Container $CONTAINER_NAME deployed on port $APP_PORT."
+
+            # Optional monitoring hook (basic health check or custom endpoint)
+            echo "Health check:"
+            sleep 5
+            curl --fail http://localhost:$APP_PORT || echo "⚠️ App might not be healthy yet"
+
+            # Optional: notify monitoring service or log success
+            echo "Deployment for $CONTAINER_NAME complete." | logger

@@ -1,8 +1,8 @@
-name: Ocheverse CI/CD
+name: Deploy Ocheverse
 
 on:
   push:
-    branches: ['main']
+    branches: ['main'] 
 
 jobs:
   deploy:
@@ -21,34 +21,26 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           command_timeout: 200m
           script: |
-            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              APP_DIR="/usr/ocheg/ocheverse"
-              APP_PORT=6065
-              CONTAINER_NAME="ocheverse"
+            echo "Starting deployment..."
 
-            echo "Deploying branch: ${{ github.ref }}"
-            cd $APP_DIR
+            cd /usr/app/ocheverse  # adjust path if needed
 
-            echo "Pulling latest code..."
-            git pull origin $(basename ${{ github.ref }})
+            echo "Pulling latest changes..."
+            git pull origin main
 
             echo "Building Docker image..."
-            docker build -t $CONTAINER_NAME:latest .
+            docker build -t ocheverse:latest .
 
-            echo "Stopping old container if it exists..."
-            docker rm -f $CONTAINER_NAME || true
+            echo "Stopping and removing old container (if exists)..."
+            docker rm -f ocheverse || true
 
             echo "Running new container..."
-            docker run --name $CONTAINER_NAME \
-              -d -p $APP_PORT:6065 \
-              $CONTAINER_NAME:latest
+            docker run --name ocheverse -d -p 6065:6065 ocheverse:latest
 
-            echo "Container $CONTAINER_NAME deployed on port $APP_PORT."
-
-            # Optional monitoring hook (basic health check or custom endpoint)
-            echo "Health check:"
+            echo "Sleeping for health check..."
             sleep 5
-            curl --fail http://localhost:$APP_PORT || echo "⚠️ App might not be healthy yet"
 
-            # Optional: notify monitoring service or log success
-            echo "Deployment for $CONTAINER_NAME complete." | logger
+            echo "Health check:"
+            curl --fail http://localhost:6065 || echo "⚠️ App may not be responding yet"
+
+            echo "✅ Deployment completed successfully."

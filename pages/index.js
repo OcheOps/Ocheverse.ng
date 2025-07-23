@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <>
       <Head>
-  <title>Oche – DevOps Engineer | Ocheverse|Solutions Architect</title>
+  <title>Oche David – DevOps Engineer | Ocheverse|Solutions Architect</title>
   <meta name="description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions at Ocheverse." />
   <meta name="keywords" content="DevOps, Cloud, SRE, Automation, Oche,Infra Projects, David Gideon, Ocheverse" />
   <meta name="author" content="David Ndifrekeabasi Gideon" />

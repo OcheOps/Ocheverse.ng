@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <>
       <Head>
-  <title>Oche David – DevOps Engineer | Ocheverse|Solutions Architect</title>
+  <title>Oche – DevOps Engineer | Ocheverse|Solutions Architect</title>
   <meta name="description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions at Ocheverse." />
   <meta name="keywords" content="DevOps, Cloud, SRE, Automation, Oche,Infra Projects, David Gideon, Ocheverse" />
   <meta name="author" content="David Ndifrekeabasi Gideon" />
@@ -44,7 +44,7 @@ export default function Home() {
             DevOps Engineer ✦ SRE ✦ Solutions Architect ✦ Infra Storyteller ✦ Building from Lagos to the world 🌍
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/DavidGideonDevOps.pdf" download className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow-lg">
+            <a href="/DavidGideonSA.pdf" download className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow-lg">
               📄 Download My CV
             </a>
             <a href="https://ocheverse.substack.com" target="_blank" className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white py-2 px-6 rounded shadow">
@@ -56,6 +56,11 @@ export default function Home() {
             <a href="/blog" className="bg-pink-600 hover:bg-pink-700 text-white py-2 px-6 rounded shadow">
   📰 Read Latest Posts
 </a>
+
+<a href="/learn" className="bg-red-400 hover:bg-red-500 text-white py-2 px-6 rounded shadow">
+  📚 Join DevOps Classes 
+</a>
+
             <a href="https://github.com/OcheOps" target="_blank" className="bg-gray-900 text-white hover:bg-gray-700 py-2 px-6 rounded shadow">
               🐙 View GitHub
             </a>
@@ -89,9 +94,9 @@ export default function Home() {
         <section className="py-16 border-t border-gray-300">
           <h2 className="text-3xl font-bold text-green-600 dark:text-green-400 mb-6 text-center">🎉 Fun Facts About Me</h2>
           <ul className="list-disc max-w-2xl mx-auto space-y-2 text-lg text-gray-700 dark:text-gray-300">
-            <li>I used to run a tech community while still in school 🧠</li>
+            <li>I think alot about the future</li>
             <li>I LOVE Liverpool FC</li>
-            <li>I’m addicted to spinning up VMs just to tear them down 🚀</li>
+            <li>I’m curious about the future of Distributed Systems</li>
             <li>I write blog posts with memes and builder energy 💻🔥</li>
             <li>I daydream of infra that configures itself ☁️🤖</li>
           </ul>

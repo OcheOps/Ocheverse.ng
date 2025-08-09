@@ -8,8 +8,8 @@ export async function getStaticProps() {
 
   return {
     props: {
-      ocheversePosts: ocheverseFeed.items.slice(0, 3),
-      bpurPosts: bpurFeed.items.slice(0, 3),
+      ocheversePosts: ocheverseFeed.items.slice(0, 10),
+      bpurPosts: bpurFeed.items.slice(0, 10),
     },
     revalidate: 3600 // revalidate every hour
   };
@@ -25,7 +25,7 @@ export default function Blog({ ocheversePosts, bpurPosts }) {
         <h1 className="text-4xl font-bold text-center mb-12">📰 Latest Blog Posts</h1>
 
         <section className="mb-16">
-          <h2 className="text-2xl font-semibold text-blue-600 mb-6">✍🏽 From Ocheverse</h2>
+          <h2 className="text-2xl font-semibold text-blue-600 mb-6">✍🏽 From Ocheverse(Engineering Blog)</h2>
           <ul className="space-y-4">
             {ocheversePosts.map((post, i) => (
               <li key={i} className="border-l-4 border-blue-600 pl-4">
@@ -37,7 +37,7 @@ export default function Blog({ ocheversePosts, bpurPosts }) {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold text-purple-600 mb-6">🧠 From BPUR</h2>
+          <h2 className="text-2xl font-semibold text-purple-600 mb-6">🧠 From BPUR(Big Picture,Unfiltered. Real)</h2>
           <ul className="space-y-4">
             {bpurPosts.map((post, i) => (
               <li key={i} className="border-l-4 border-purple-600 pl-4">

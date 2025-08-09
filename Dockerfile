@@ -13,6 +13,7 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV PORT=6065
+ENV NODE_OPTIONS=--max-old-space-size=256 
 
 COPY package*.json ./
 RUN npm install --omit=dev

@@ -1,5 +1,5 @@
 # === Stage 1: Build the Next.js app ===
-FROM node:18-alpine-slim AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 
 # === Stage 2: Run the built app ===
-FROM node:18-alpine-slim AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV PORT=6065

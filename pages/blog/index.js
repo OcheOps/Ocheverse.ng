@@ -8,7 +8,7 @@ export async function getStaticProps() {
 
   return {
     props: {
-      ocheversePosts: ocheverseFeed.items.slice(0, 10),
+      ocheversePosts: ocheverseFeed.items.slice(0, 7),
       bpurPosts: bpurFeed.items.slice(0, 10),
     },
     revalidate: 3600 // revalidate every hour

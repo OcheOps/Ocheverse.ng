@@ -44,7 +44,7 @@ export default function Home() {
             DevOps Engineer ✦ SRE ✦ Solutions Architect ✦ Infra Storyteller ✦ Building from Lagos to the world 🌍
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <a href="/DavidGideonSA.pdf" download className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow-lg">
+            <a href="/DavidGideonNdfrekeabasi.pdf" download className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow-lg">
               📄 Download My CV
             </a>
             <a href="https://ocheverse.substack.com" target="_blank" className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white py-2 px-6 rounded shadow">

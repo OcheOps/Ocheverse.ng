@@ -1,0 +1,33 @@
+
+> ocheverse@1.0.0 build
+> next build
+
+   Linting and checking validity of types ...
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Collecting page data ...
+   Generating static pages (0/5) ...
+   Generating static pages (1/5) 
+   Generating static pages (2/5) 
+   Generating static pages (3/5) 
+ ✓ Generating static pages (5/5) 
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (pages)                              Size     First Load JS
+┌ ○ /                                      2.86 kB          90 kB
+├   /_app                                  0 B            83.2 kB
+├ ○ /404                                   182 B          83.4 kB
+├ ● /blog (ISR: 3600 Seconds) (1131 ms)    2.36 kB          93 kB
+└ ○ /learn                                 2.32 kB          89 kB
++ First Load JS shared by all              88 kB
+  ├ chunks/framework-fae63b21a27d6472.js   45.5 kB
+  ├ chunks/main-5232346dfb644e31.js        32.9 kB
+  ├ chunks/pages/_app-dd414049c1427b96.js  3.93 kB
+  ├ chunks/webpack-fa99431b15635937.js     836 B
+  └ css/5723ce0b686b0b0c.css               4.82 kB
+
+○  (Static)  automatically rendered as static HTML (uses no initial props)
+●  (SSG)     automatically generated as static HTML + JSON (uses getStaticProps)
+   (ISR)     incremental static regeneration (uses revalidate in getStaticProps)
+

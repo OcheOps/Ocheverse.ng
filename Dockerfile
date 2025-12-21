@@ -13,16 +13,22 @@ FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV PORT=6065
-ENV NODE_OPTIONS=--max-old-space-size=256 
+ENV NODE_ENV=production
 
-COPY package*.json ./
-RUN npm install --omit=dev
+# Don't run as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/.next .next
+# Copy necessary files
 COPY --from=builder /app/public ./public
-# Removed: COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
 
 EXPOSE 6065
-CMD ["npm", "start"]
+
+CMD ["node", "server.js"]

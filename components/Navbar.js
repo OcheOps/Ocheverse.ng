@@ -37,7 +37,10 @@ export default function Navbar() {
         { name: 'Home', path: '/' },
         { name: 'Blog', path: '/blog' },
         { name: 'Learn', path: '/learn' },
+        { name: 'Resources', path: '/resources' },
         { name: 'Snake 🐍', path: '/game' },
+        { name: '2048 🔢', path: '/2048' },
+        { name: 'Now ⚡', path: '/now' },
     ];
 
     return (
@@ -56,8 +59,8 @@ export default function Navbar() {
                             <Link
                                 href={link.path}
                                 className={`transition-colors relative ${isActive(link.path)
-                                        ? 'text-blue-600 dark:text-blue-400'
-                                        : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                                     }`}
                             >
                                 {link.name}

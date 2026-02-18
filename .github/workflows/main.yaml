@@ -69,7 +69,7 @@ jobs:
               --label "traefik.http.routers.ocheverse.tls=true" \
               --label "traefik.http.routers.ocheverse.tls.certresolver=letsencrypt" \
               --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
-              --label "traefik.http.routers.ocheverse.middlewares=redirect-to-https@docker" \
+              --label "traefik.http.routers.ocheverse.middlewares=redirect-to-https" \
               "$IMAGE"
 
             echo "Health check (public HTTPS):"

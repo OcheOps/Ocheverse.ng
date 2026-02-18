@@ -2,7 +2,7 @@ name: Deploy Ocheverse
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
 
 jobs:
   build-and-push:
@@ -43,13 +43,18 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           command_timeout: 30m
           script: |
-            set -e
+            set -euo pipefail
+
+            REGISTRY="${{ secrets.REGISTRY_HOST }}"
+            IMAGE="${REGISTRY}/ocheverse:latest"
+            DOMAIN="ocheverse.ng"
+            NETWORK="coolify"
 
             echo "Logging into registry..."
-            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY_HOST }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "$REGISTRY" -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
 
-            echo "Pulling image..."
-            docker pull ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
+            echo "Pulling image: $IMAGE"
+            docker pull "$IMAGE"
 
             echo "Restarting container..."
             docker rm -f ocheverse || true
@@ -57,16 +62,14 @@ jobs:
             docker run -d \
               --name ocheverse \
               --restart unless-stopped \
-              --network coolify-proxy \
-              -l traefik.enable=true \
-              -l traefik.http.routers.ocheverse.rule=Host\(`ocheverse.ng`\) \
-              -l traefik.http.routers.ocheverse.entrypoints=websecure \
-              -l traefik.http.routers.ocheverse.tls=true \
-              -l traefik.http.routers.ocheverse.tls.certresolver=letsencrypt \
-              -l traefik.http.services.ocheverse.loadbalancer.server.port=6065 \
-              ocheverse:latest
-
-            
+              --network "$NETWORK" \
+              --label "traefik.enable=true" \
+              --label "traefik.http.routers.ocheverse.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+              --label "traefik.http.routers.ocheverse.entrypoints=websecure" \
+              --label "traefik.http.routers.ocheverse.tls=true" \
+              --label "traefik.http.routers.ocheverse.tls.certresolver=letsencrypt" \
+              --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
+              "$IMAGE"
 
             echo "Health check..."
             sleep 5

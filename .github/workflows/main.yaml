@@ -65,13 +65,12 @@ jobs:
               --network "$NETWORK" \
               --label "traefik.enable=true" \
               --label "traefik.http.routers.ocheverse.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
-              --label "traefik.http.routers.ocheverse.entrypoints=websecure" \
               --label "traefik.http.routers.ocheverse.tls=true" \
               --label "traefik.http.routers.ocheverse.tls.certresolver=letsencrypt" \
               --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
               "$IMAGE"
 
-            echo "Health check..."
+            echo "Health check (container-local):"
             sleep 5
             curl --fail http://localhost:6065 || echo "⚠️ App may not be responding yet"
 

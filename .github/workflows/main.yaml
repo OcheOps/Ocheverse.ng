@@ -67,9 +67,10 @@ jobs:
               --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
               --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
               --label "traefik.http.routers.ocheverse-http.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
-              --label "traefik.http.routers.ocheverse-http.entrypoints=web" \
+              --label "traefik.http.routers.ocheverse-http.entrypoints=http" \
               --label "traefik.http.routers.ocheverse-http.middlewares=redirect-to-https" \
               --label "traefik.http.routers.ocheverse-https.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+              --label "traefik.http.routers.ocheverse-https.entrypoints=https" \
               --label "traefik.http.routers.ocheverse-https.tls=true" \
               --label "traefik.http.routers.ocheverse-https.tls.certresolver=letsencrypt" \
               "$IMAGE"

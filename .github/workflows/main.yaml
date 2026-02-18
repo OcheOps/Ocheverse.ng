@@ -53,7 +53,20 @@ jobs:
 
             echo "Restarting container..."
             docker rm -f ocheverse || true
-            docker run --name ocheverse -d --restart unless-stopped -p 6065:6065 ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
+
+            docker run -d \
+              --name ocheverse \
+              --restart unless-stopped \
+              --network coolify-proxy \
+              -l traefik.enable=true \
+              -l traefik.http.routers.ocheverse.rule=Host\(`ocheverse.ng`\) \
+              -l traefik.http.routers.ocheverse.entrypoints=websecure \
+              -l traefik.http.routers.ocheverse.tls=true \
+              -l traefik.http.routers.ocheverse.tls.certresolver=letsencrypt \
+              -l traefik.http.services.ocheverse.loadbalancer.server.port=6065 \
+              ocheverse:latest
+
+            
 
             echo "Health check..."
             sleep 5

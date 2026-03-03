@@ -2,45 +2,81 @@ name: Deploy Ocheverse
 
 on:
   push:
-    branches: ['main'] 
+    branches: ["main"]
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Deploy to Server via SSH
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Home Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
+            ${{ secrets.REGISTRY_HOST }}/ocheverse:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Contabo via SSH (pull-only)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          command_timeout: 200m
+          command_timeout: 30m
           script: |
-            echo "Starting deployment..."
+            set -euo pipefail
 
-            cd /usr/ocheg/Ocheverse.ng
+            REGISTRY="${{ secrets.REGISTRY_HOST }}"
+            IMAGE="${REGISTRY}/ocheverse:latest"
+            DOMAIN="ocheverse.ng"
+            NETWORK="coolify"
 
-            echo "Pulling latest changes..."
-            git pull origin main
+            echo "Logging into registry..."
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "$REGISTRY" -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
 
-            echo "Building Docker image..."
-            docker build -t ocheverse:latest .
+            echo "Pulling image: $IMAGE"
+            docker pull "$IMAGE"
 
-            echo "Stopping and removing old container (if exists)..."
+            echo "Restarting container..."
             docker rm -f ocheverse || true
 
-            echo "Running new container..."
-            docker run --name ocheverse -d -p 6065:6065 ocheverse:latest
+            docker run -d \
+              --name ocheverse \
+              --restart unless-stopped \
+              --network "$NETWORK" \
+              --label "traefik.enable=true" \
+              --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
+              --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
+              --label "traefik.http.routers.ocheverse-http.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+              --label "traefik.http.routers.ocheverse-http.entrypoints=http" \
+              --label "traefik.http.routers.ocheverse-http.middlewares=redirect-to-https" \
+              --label "traefik.http.routers.ocheverse-https.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+              --label "traefik.http.routers.ocheverse-https.entrypoints=https" \
+              --label "traefik.http.routers.ocheverse-https.tls=true" \
+              --label "traefik.http.routers.ocheverse-https.tls.certresolver=letsencrypt" \
+              "$IMAGE"
 
-            echo "Sleeping for health check..."
+            echo "Health check (public HTTPS):"
             sleep 5
-
-            echo "Health check:"
-            curl --fail http://localhost:6065 || echo "⚠️ App may not be responding yet"
+            curl -kfsS "https://${DOMAIN}" >/dev/null && echo "✅ HTTPS OK" || echo "⚠️ HTTPS failed"
 
             echo "✅ Deployment completed successfully."

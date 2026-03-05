@@ -1,18 +1,9 @@
-
 import Head from 'next/head';
 import NowPlaying from '../components/NowPlaying';
 import Link from 'next/link';
-import { getFocusItems } from '../lib/notion';
+import { focusItems, currentReading } from '../data/siteData';
 
-export async function getStaticProps() {
-    const focusItems = await getFocusItems();
-    return {
-        props: { focusItems },
-        revalidate: 60
-    };
-}
-
-export default function Now({ focusItems }) {
+export default function Now() {
     return (
         <>
             <Head>
@@ -47,11 +38,11 @@ export default function Now({ focusItems }) {
                                     </div>
                                     <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
                                         <div
-                                            className={`h - full rounded - full transition - all duration - 1000 ease - out ${item.color === 'orange' ? 'bg-orange-500' :
-                                                    item.color === 'green' ? 'bg-green-500' :
-                                                        item.color === 'purple' ? 'bg-purple-500' : 'bg-blue-500'
-                                                } `}
-                                            style={{ width: `${item.progress}% ` }}
+                                            className={`h-full rounded-full transition-all duration-1000 ease-out ${item.color === 'orange' ? 'bg-orange-500' :
+                                                item.color === 'green' ? 'bg-green-500' :
+                                                    item.color === 'purple' ? 'bg-purple-500' : 'bg-blue-500'
+                                                }`}
+                                            style={{ width: `${item.progress}%` }}
                                         ></div>
                                     </div>
                                 </div>
@@ -73,12 +64,12 @@ export default function Now({ focusItems }) {
                             <span className="text-orange-500">📚</span> Reading
                         </h2>
                         <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700">
-                            <h3 className="font-bold text-lg mb-1">Site Reliability Engineering</h3>
-                            <p className="text-gray-500 italic mb-2">by Google Team</p>
+                            <h3 className="font-bold text-lg mb-1">{currentReading.title}</h3>
+                            <p className="text-gray-500 italic mb-2">by {currentReading.author}</p>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                                <div className="bg-orange-500 h-full w-[45%]"></div>
+                                <div className="bg-orange-500 h-full transition-all duration-1000 ease-out" style={{ width: `${currentReading.progress}%` }}></div>
                             </div>
-                            <p className="text-xs text-right mt-1 text-gray-400">45% Complete</p>
+                            <p className="text-xs text-right mt-1 text-gray-400">{currentReading.progress}% Complete</p>
                         </div>
                     </section>
 
@@ -94,3 +85,4 @@ export default function Now({ focusItems }) {
         </>
     );
 }
+

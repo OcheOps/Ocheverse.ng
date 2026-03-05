@@ -1,19 +1,9 @@
 import Head from 'next/head';
 import { useState } from 'react';
-import { getResources } from '../lib/notion';
 import Link from 'next/link';
+import { resources as initialResources } from '../data/siteData';
 
-export async function getStaticProps() {
-    const resources = await getResources();
-    return {
-        props: {
-            initialResources: resources,
-        },
-        revalidate: 60, // Update every minute
-    };
-}
-
-export default function Resources({ initialResources }) {
+export default function Resources() {
     const [activeTab, setActiveTab] = useState('All');
 
     const categories = ['All', ...new Set(initialResources.map(r => r.category))];
@@ -47,8 +37,8 @@ export default function Resources({ initialResources }) {
                             key={cat}
                             onClick={() => setActiveTab(cat)}
                             className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === cat
-                                    ? 'bg-blue-600 text-white shadow-lg scale-105'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white shadow-lg scale-105'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                 }`}
                         >
                             {cat}

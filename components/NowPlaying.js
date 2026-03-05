@@ -1,15 +1,7 @@
-import useSWR from 'swr';
 import Image from 'next/image';
-import { useEffect } from 'react';
-
-const fetcher = (url) => fetch(url).then((r) => r.json());
+import { currentlyListening as data } from '../data/siteData';
 
 export default function NowPlaying() {
-    const { data, error } = useSWR('/api/now-playing', fetcher, {
-        refreshInterval: 10000
-    });
-
-    if (error) return <div />;
     if (!data) return <div className="animate-pulse h-16 w-full bg-gray-100 dark:bg-gray-800 rounded-lg" />;
 
     return (

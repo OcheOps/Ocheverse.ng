@@ -8,9 +8,9 @@ A sleek, developer-focused portfolio built with Next.js + TailwindCSS.
   - **Snake**: Classic terminal snake game (`/game`).
   - **2048**: Logic puzzle game (`/2048`).
 - ⚡ **Now Page**: Real-time status inspired by Derek Sivers (`/now`).
-  - **Spotify Integration**: Displays currently playing song via API.
-  - **CMS-Powered Focus**: Track exam prep (Google PCA/AWS SAP) via Notion.
-- 📚 **Engineering Vault**: Curated DevOps resources (`/resources`) managed via Notion.
+  - **Now Playing**: Displays currently playing song via `siteData.js`.
+  - **Focus Tracker**: Track exam prep (Google PCA/AWS SAP).
+- 📚 **Engineering Vault**: Curated DevOps resources (`/resources`).
 - ⌘ **Command Palette**: `Ctrl+K` for keyboard-driven navigation.
 - 🐳 **Docker Ready**: Optimized for containerized deployment.
 
@@ -21,21 +21,16 @@ npm install
 npm run dev
 ```
 
-## Configuration (.env.local)
-To enable the "Now Playing" widget and Notion CMS features, create a `.env.local` file:
+## Configuration (Local Data)
+The "Now" page and "Resources" page are powered by a local data file. You can easily update this without touching the actual page code or needing external API keys.
 
-```bash
-# Spotify (For 'Now Playing' Widget)
-SPOTIFY_CLIENT_ID=...
-SPOTIFY_CLIENT_SECRET=...
-SPOTIFY_REFRESH_TOKEN=...
+Edit the file at: `data/siteData.js`
 
-# Notion CMS (For /resources and /now content)
-NOTION_KEY=...
-NOTION_RESOURCES_DATABASE_ID=...
-NOTION_FOCUS_DATABASE_ID=...
-```
-*Note: The site works in "Mock Mode" if these keys are missing.*
+Here you can update:
+- `focusItems`: Your current goals and progress bars.
+- `currentlyListening`: The song showing on your Now Playing widget.
+- `currentReading`: The book you are reading.
+- `resources`: The list of links showing on the `/resources` page.
 
 ## Docker
 

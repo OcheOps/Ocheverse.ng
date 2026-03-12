@@ -20,22 +20,36 @@ export async function getStaticProps() {
 
   try {
     const ocheverseFeed = await parser.parseURL("https://ocheverse.substack.com/feed");
-    ocheverseItems = ocheverseFeed.items.slice(0, 6).map(item => ({
-      ...item,
-      coverImage: extractImage(item['content:encoded'] || item.content) || null,
-      isoDate: item.isoDate || new Date(item.pubDate).toISOString()
-    }));
+    ocheverseItems = ocheverseFeed.items.slice(0, 6).map(item => {
+      let slug = item.link.split('/').pop();
+      if (slug.includes('?')) slug = slug.split('?')[0];
+      return {
+        ...item,
+        coverImage: extractImage(item['content:encoded'] || item.content) || null,
+        isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
+        slug,
+        source: 'ocheverse',
+        readingTime: Math.ceil(((item['content:encoded'] || item.content || '').replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
+      };
+    });
   } catch (e) {
     console.error("Failed to fetch Ocheverse feed", e);
   }
 
   try {
     const bpurFeed = await parser.parseURL("https://bpur.substack.com/feed");
-    bpurItems = bpurFeed.items.slice(0, 6).map(item => ({
-      ...item,
-      coverImage: extractImage(item['content:encoded'] || item.content) || null,
-      isoDate: item.isoDate || new Date(item.pubDate).toISOString()
-    }));
+    bpurItems = bpurFeed.items.slice(0, 6).map(item => {
+      let slug = item.link.split('/').pop();
+      if (slug.includes('?')) slug = slug.split('?')[0];
+      return {
+        ...item,
+        coverImage: extractImage(item['content:encoded'] || item.content) || null,
+        isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
+        slug,
+        source: 'bpur',
+        readingTime: Math.ceil(((item['content:encoded'] || item.content || '').replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
+      };
+    });
   } catch (e) {
     console.error("Failed to fetch BPUR feed", e);
   }
@@ -183,9 +197,8 @@ function BlogCard({ post, category, colorClass, delay }) {
   const groupHoverText = colorClass === 'blue' ? 'group-hover:text-blue-500 dark:group-hover:text-blue-400' : 'group-hover:text-purple-500 dark:group-hover:text-purple-400';
 
   return (
-    <a
-      href={post.link}
-      target="_blank"
+    <Link
+      href={`/blog/${post.source}/${post.slug}`}
       className={`group flex flex-col bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full animate-slide-up`}
       style={{ animationDelay: `${0.2 + delay}s` }}
     >
@@ -208,13 +221,17 @@ function BlogCard({ post, category, colorClass, delay }) {
       <div className={`p-3 sm:p-6 flex flex-col flex-grow border-b-4 ${borderColor}`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 sm:mb-3 text-xs sm:text-sm">
           <span className={`font-bold ${textColor} uppercase tracking-wider text-[10px] sm:text-xs truncate`}>{category}</span>
-          <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">{date}</span>
+          <div className="text-gray-500 dark:text-gray-400 whitespace-nowrap space-x-1 sm:space-x-2">
+            <span>{date}</span>
+            <span className="hidden sm:inline">·</span>
+            <span>{post.readingTime || 1} min read</span>
+          </div>
         </div>
 
         <h3 className={`text-sm sm:text-xl font-bold mb-2 sm:mb-3 leading-tight ${groupHoverText} transition-colors line-clamp-3`}>
           {post.title}
         </h3>
       </div>
-    </a>
+    </Link>
   );
 }

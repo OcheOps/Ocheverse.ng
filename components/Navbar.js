@@ -40,7 +40,6 @@ export default function Navbar() {
         { name: 'Resources', path: '/resources' },
         { name: 'Snake 🐍', path: '/game' },
         { name: '2048 🔢', path: '/2048' },
-        { name: 'Now ⚡', path: '/now' },
     ];
 
     return (

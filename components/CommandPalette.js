@@ -48,7 +48,6 @@ export default function CommandPalette() {
                         <Item onSelect={() => runCommand(() => router.push('/learn'))} icon="🎓">Learn</Item>
                         <Item onSelect={() => runCommand(() => router.push('/game'))} icon="🐍">Snake Game</Item>
                         <Item onSelect={() => runCommand(() => router.push('/2048'))} icon="🔢">2048 Game</Item>
-                        <Item onSelect={() => runCommand(() => router.push('/now'))} icon="⚡">Now Page</Item>
                     </Command.Group>
 
                     <Command.Group heading="Socials" className="text-xs font-bold text-gray-400 dark:text-gray-500 px-2 py-1 mb-1 mt-2">

@@ -1,7 +1,7 @@
-import Parser from "rss-parser";
+import { createParser } from "../../lib/rssParser";
 
 export default async function handler(req, res) {
-  const parser = new Parser({ headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Ocheverse/1.0)' } });
+  const parser = createParser();
   let allItems = [];
 
   const feeds = [

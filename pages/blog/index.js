@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Parser from "rss-parser";
+import { createParser } from "../../lib/rssParser";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -34,7 +34,7 @@ const mapFeedItem = (item, source) => {
 };
 
 export async function getStaticProps() {
-  const parser = new Parser({ headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Ocheverse/1.0)' } });
+  const parser = createParser();
 
   let ocheverseItems = [];
   let bpurItems = [];

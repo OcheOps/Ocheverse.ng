@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Parser from "rss-parser";
+import { createParser } from "../../../lib/rssParser";
 import Link from "next/link";
 import * as cheerio from 'cheerio';
 import slugify from 'slugify';
@@ -11,7 +11,7 @@ import BackToTop from '../../../components/BackToTop';
 import CopyCodeButton from '../../../components/CopyCodeButton';
 
 export async function getStaticPaths() {
-  const parser = new Parser({ headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Ocheverse/1.0)' } });
+  const parser = createParser();
   let paths = [];
 
   const feeds = [
@@ -44,7 +44,7 @@ export async function getStaticPaths() {
 
 export async function getStaticProps({ params }) {
   const { source, slug } = params;
-  const parser = new Parser({ headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Ocheverse/1.0)' } });
+  const parser = createParser();
   
   const feedUrl = source === 'ocheverse' 
     ? "https://ocheverse.substack.com/feed" 

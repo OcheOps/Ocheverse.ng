@@ -1,7 +1,6 @@
 import Head from "next/head";
 import Parser from "rss-parser";
 import Link from "next/link";
-import Image from "next/image";
 
 // Helper function to extract the first image from HTML content
 const extractImage = (content) => {

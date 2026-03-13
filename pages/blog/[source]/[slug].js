@@ -1,9 +1,9 @@
 import Head from "next/head";
 import Parser from "rss-parser";
 import Link from "next/link";
-import Image from "next/image";
 import * as cheerio from 'cheerio';
 import slugify from 'slugify';
+import { useRouter } from 'next/router';
 import Giscus from '@giscus/react';
 
 export async function getStaticPaths() {
@@ -102,6 +102,9 @@ export async function getStaticProps({ params }) {
 }
 
 export default function BlogPost({ post }) {
+  const router = useRouter();
+  const postUrl = `https://ocheverse.ng${router.asPath}`;
+
   if (!post) {
     return <div>Post not found</div>;
   }
@@ -148,11 +151,11 @@ export default function BlogPost({ post }) {
                   {/* Quick Share Buttons */}
                   <div className="flex items-center gap-2 ml-4 border-l pl-4 border-gray-300 dark:border-gray-600">
                     <span className="text-sm font-semibold">Share:</span>
-                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent('https://ocheverse.ng')}`} target="_blank" className="text-blue-400 hover:text-blue-600">
+                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(postUrl)}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-600">
                       Twitter
                     </a>
                     <span>•</span>
-                    <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://ocheverse.ng')}`} target="_blank" className="text-blue-700 hover:text-blue-900 dark:text-blue-500">
+                    <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`} target="_blank" rel="noreferrer" className="text-blue-700 hover:text-blue-900 dark:text-blue-500">
                       LinkedIn
                     </a>
                   </div>
@@ -198,10 +201,10 @@ export default function BlogPost({ post }) {
                 <h3 className="text-2xl font-bold mb-6 text-center">Comments</h3>
                 <Giscus
                   id="comments"
-                  repo="your-github-username/ocheverse-comments" // Replace with desired repo
-                  repoId="R_kgDOMxxx" // Replace with real repo ID if desired, otherwise fake works for UI demo
-                  category="Announcements"
-                  categoryId="DIC_kwDOMxxx" // Replace with real category ID
+                  repo="OcheOps/Discussions"
+                  repoId="R_kgDORmSxBg"
+                  category="General"
+                  categoryId="DIC_kwDORmSxBs4C4UcU"
                   mapping="pathname"
                   strict="0"
                   reactionsEnabled="1"

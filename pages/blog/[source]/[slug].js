@@ -35,7 +35,7 @@ export async function getStaticPaths() {
         });
       });
     } catch (error) {
-      console.error(`Failed to fetch paths for ${feed.source}:`, error);
+      console.warn(`[RSS] Skipping ${feed.source} paths (will use fallback): ${error.message}`);
     }
   }
 
@@ -132,7 +132,7 @@ export async function getStaticProps({ params }) {
       revalidate: 3600
     };
   } catch (error) {
-    console.error(`Error in getStaticProps for ${source}/${slug}:`, error);
+    console.warn(`[RSS] Post ${source}/${slug} not available at build time (will render on first visit): ${error.message}`);
     return { notFound: true };
   }
 }

@@ -43,14 +43,14 @@ export async function getStaticProps() {
     const ocheverseFeed = await parser.parseURL("https://ocheverse.substack.com/feed");
     ocheverseItems = ocheverseFeed.items.map(item => mapFeedItem(item, 'ocheverse'));
   } catch (e) {
-    console.error("Failed to fetch Ocheverse feed", e);
+    console.warn("[RSS] Ocheverse feed unavailable at build time (will load at runtime):", e.message);
   }
 
   try {
     const bpurFeed = await parser.parseURL("https://bpur.substack.com/feed");
     bpurItems = bpurFeed.items.map(item => mapFeedItem(item, 'bpur'));
   } catch (e) {
-    console.error("Failed to fetch BPUR feed", e);
+    console.warn("[RSS] BPUR feed unavailable at build time (will load at runtime):", e.message);
   }
 
   return {

@@ -13,7 +13,7 @@ const staticPages = [
 ];
 
 export default async function handler(req, res) {
-  const parser = new Parser();
+  const parser = new Parser({ headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Ocheverse/1.0)' } });
   let blogEntries = [];
 
   const feeds = [

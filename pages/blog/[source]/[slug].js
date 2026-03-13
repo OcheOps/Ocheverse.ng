@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { createParser } from "../../../lib/rssParser";
+import { createParser, FEEDS } from "../../../lib/rssParser";
 import Link from "next/link";
 import * as cheerio from 'cheerio';
 import slugify from 'slugify';
@@ -15,8 +15,8 @@ export async function getStaticPaths() {
   let paths = [];
 
   const feeds = [
-    { source: "ocheverse", url: "https://ocheverse.substack.com/feed" },
-    { source: "bpur", url: "https://bpur.substack.com/feed" }
+    { source: "ocheverse", url: FEEDS.ocheverse },
+    { source: "bpur", url: FEEDS.bpur }
   ];
 
   for (const feed of feeds) {
@@ -46,9 +46,7 @@ export async function getStaticProps({ params }) {
   const { source, slug } = params;
   const parser = createParser();
   
-  const feedUrl = source === 'ocheverse' 
-    ? "https://ocheverse.substack.com/feed" 
-    : "https://bpur.substack.com/feed";
+  const feedUrl = source === 'ocheverse' ? FEEDS.ocheverse : FEEDS.bpur;
 
   try {
     const feed = await parser.parseURL(feedUrl);

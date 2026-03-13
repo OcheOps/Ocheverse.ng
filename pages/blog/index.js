@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { createParser } from "../../lib/rssParser";
+import { createParser, FEEDS } from "../../lib/rssParser";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -40,14 +40,14 @@ export async function getStaticProps() {
   let bpurItems = [];
 
   try {
-    const ocheverseFeed = await parser.parseURL("https://ocheverse.substack.com/feed");
+    const ocheverseFeed = await parser.parseURL(FEEDS.ocheverse);
     ocheverseItems = ocheverseFeed.items.map(item => mapFeedItem(item, 'ocheverse'));
   } catch (e) {
     console.warn("[RSS] Ocheverse feed unavailable at build time (will load at runtime):", e.message);
   }
 
   try {
-    const bpurFeed = await parser.parseURL("https://bpur.substack.com/feed");
+    const bpurFeed = await parser.parseURL(FEEDS.bpur);
     bpurItems = bpurFeed.items.map(item => mapFeedItem(item, 'bpur'));
   } catch (e) {
     console.warn("[RSS] BPUR feed unavailable at build time (will load at runtime):", e.message);

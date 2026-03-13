@@ -1,12 +1,12 @@
-import { createParser } from "../../lib/rssParser";
+import { createParser, FEEDS } from "../../lib/rssParser";
 
 export default async function handler(req, res) {
   const parser = createParser();
   let allItems = [];
 
   const feeds = [
-    { source: "ocheverse", url: "https://ocheverse.substack.com/feed", label: "Ocheverse" },
-    { source: "bpur", url: "https://bpur.substack.com/feed", label: "BPUR" },
+    { source: "ocheverse", url: FEEDS.ocheverse, label: "Ocheverse" },
+    { source: "bpur", url: FEEDS.bpur, label: "BPUR" },
   ];
 
   for (const feed of feeds) {

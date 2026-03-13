@@ -1,10 +1,14 @@
 import Head from "next/head";
 import Parser from "rss-parser";
 import Link from "next/link";
-import Image from "next/image";
 import * as cheerio from 'cheerio';
 import slugify from 'slugify';
-import Giscus from '@giscus/react';
+import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
+import Script from 'next/script';
+import ReadingProgress from '../../../components/ReadingProgress';
+import BackToTop from '../../../components/BackToTop';
+import CopyCodeButton from '../../../components/CopyCodeButton';
 
 export async function getStaticPaths() {
   const parser = new Parser();
@@ -18,7 +22,7 @@ export async function getStaticPaths() {
   for (const feed of feeds) {
     try {
       const parsedFeed = await parser.parseURL(feed.url);
-      const items = parsedFeed.items.slice(0, 6);
+      const items = parsedFeed.items;
       items.forEach(item => {
         // extract slug from link, e.g., https://ocheverse.substack.com/p/the-slug
         const linkParts = item.link.split('/');
@@ -80,6 +84,12 @@ export async function getStaticProps({ params }) {
 
     const parsedContent = $('body').html() || rawContent;
 
+    const plainText = rawContent.replace(/<[^>]*>?/gm, '').trim();
+    const excerpt = plainText.length > 155 ? plainText.slice(0, 155) + '...' : plainText;
+
+    const imgMatch = rawContent.match(/<img[^>]+src="([^">]+)"/);
+    const coverImage = imgMatch ? imgMatch[1] : null;
+
     const post = {
       title: item.title,
       content: parsedContent,
@@ -88,12 +98,38 @@ export async function getStaticProps({ params }) {
       link: item.link,
       author: item.creator || 'David Gideon',
       sourceName: source === 'ocheverse' ? 'Ocheverse' : 'BPUR',
-      readingTime: Math.ceil((rawContent.replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
+      slug,
+      source,
+      excerpt,
+      coverImage,
+      readingTime: Math.ceil((plainText.split(/\s+/).length) / 200) || 1
     };
 
+    // Related posts: up to 3 other posts from same feed
+    const relatedPosts = feed.items
+      .filter(i => {
+        let s = i.link.split('/').pop();
+        if (s.includes('?')) s = s.split('?')[0];
+        return s !== slug;
+      })
+      .slice(0, 3)
+      .map(i => {
+        let s = i.link.split('/').pop();
+        if (s.includes('?')) s = s.split('?')[0];
+        const raw = i['content:encoded'] || i.content || '';
+        const img = raw.match(/<img[^>]+src="([^">]+)"/);
+        return {
+          title: i.title,
+          slug: s,
+          source,
+          coverImage: img ? img[1] : null,
+          readingTime: Math.ceil((raw.replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1,
+        };
+      });
+
     return {
-      props: { post },
-      revalidate: 3600 // Regenerate page every 1 hour
+      props: { post, relatedPosts },
+      revalidate: 3600
     };
   } catch (error) {
     console.error(`Error in getStaticProps for ${source}/${slug}:`, error);
@@ -101,7 +137,26 @@ export async function getStaticProps({ params }) {
   }
 }
 
-export default function BlogPost({ post }) {
+export default function BlogPost({ post, relatedPosts = [] }) {
+  const router = useRouter();
+  const postUrl = `https://ocheverse.ng${router.asPath}`;
+  const [views, setViews] = useState(null);
+
+  // Fetch view count from Umami API (if configured)
+  useEffect(() => {
+    const umamiHost = process.env.NEXT_PUBLIC_UMAMI_API_HOST;
+    const umamiWebsiteId = '6c144afc-918f-4b7e-a28b-2eee9c535e40';
+    const umamiApiKey = process.env.NEXT_PUBLIC_UMAMI_API_KEY;
+    if (!umamiHost || !umamiApiKey) return;
+
+    fetch(`${umamiHost}/api/websites/${umamiWebsiteId}/stats?startAt=0&endAt=${Date.now()}&url=${router.asPath}`, {
+      headers: { 'x-umami-api-key': umamiApiKey },
+    })
+      .then(r => r.json())
+      .then(data => { if (data?.pageviews?.value) setViews(data.pageviews.value); })
+      .catch(() => {});
+  }, [router.asPath]);
+
   if (!post) {
     return <div>Post not found</div>;
   }
@@ -114,8 +169,23 @@ export default function BlogPost({ post }) {
 
   return (
     <>
+      <ReadingProgress />
+      <CopyCodeButton />
+      <BackToTop />
       <Head>
         <title>{post.title} – {post.sourceName} | Ocheverse</title>
+        <meta name="description" content={post.excerpt} />
+        <meta property="og:title" content={`${post.title} – ${post.sourceName}`} />
+        <meta property="og:description" content={post.excerpt} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={postUrl} />
+        {post.coverImage && <meta property="og:image" content={post.coverImage} />}
+        <meta name="twitter:card" content={post.coverImage ? "summary_large_image" : "summary"} />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.excerpt} />
+        {post.coverImage && <meta name="twitter:image" content={post.coverImage} />}
+        <meta property="article:published_time" content={post.pubDate} />
+        <meta property="article:author" content={post.author} />
       </Head>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 py-10 px-4 sm:py-20 animate-fade-in-down">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
@@ -136,6 +206,12 @@ export default function BlogPost({ post }) {
                   <span className="text-sm text-gray-500">{date}</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   <span className="text-sm text-gray-500">{post.readingTime} min read</span>
+                  {views && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                      <span className="text-sm text-gray-500">{views.toLocaleString()} views</span>
+                    </>
+                  )}
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-extrabold mb-6 leading-tight">
                   {post.title}
@@ -148,11 +224,11 @@ export default function BlogPost({ post }) {
                   {/* Quick Share Buttons */}
                   <div className="flex items-center gap-2 ml-4 border-l pl-4 border-gray-300 dark:border-gray-600">
                     <span className="text-sm font-semibold">Share:</span>
-                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent('https://ocheverse.ng')}`} target="_blank" className="text-blue-400 hover:text-blue-600">
+                    <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(postUrl)}`} target="_blank" rel="noreferrer" className="text-blue-400 hover:text-blue-600">
                       Twitter
                     </a>
                     <span>•</span>
-                    <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://ocheverse.ng')}`} target="_blank" className="text-blue-700 hover:text-blue-900 dark:text-blue-500">
+                    <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`} target="_blank" rel="noreferrer" className="text-blue-700 hover:text-blue-900 dark:text-blue-500">
                       LinkedIn
                     </a>
                   </div>
@@ -193,24 +269,66 @@ export default function BlogPost({ post }) {
                 </a>
               </div>
               
-              {/* Giscus Comments */}
+              {/* Related Posts */}
+              {relatedPosts.length > 0 && (
+                <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-2xl font-bold mb-6 text-center">More from {post.sourceName}</h3>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    {relatedPosts.map((related, i) => (
+                      <Link
+                        key={i}
+                        href={`/blog/${related.source}/${related.slug}`}
+                        className="group bg-gray-50 dark:bg-gray-700/50 rounded-xl overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5"
+                      >
+                        <div className="h-28 bg-gray-200 dark:bg-gray-600 overflow-hidden">
+                          {related.coverImage ? (
+                            <img src={related.coverImage} alt={related.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl opacity-20">📄</div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-bold leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                            {related.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">{related.readingTime} min read</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Remark42 Comments — configure REMARK_URL below once your instance is running */}
               <div className="mt-16 pt-8">
                 <h3 className="text-2xl font-bold mb-6 text-center">Comments</h3>
-                <Giscus
-                  id="comments"
-                  repo="your-github-username/ocheverse-comments" // Replace with desired repo
-                  repoId="R_kgDOMxxx" // Replace with real repo ID if desired, otherwise fake works for UI demo
-                  category="Announcements"
-                  categoryId="DIC_kwDOMxxx" // Replace with real category ID
-                  mapping="pathname"
-                  strict="0"
-                  reactionsEnabled="1"
-                  emitMetadata="0"
-                  inputPosition="top"
-                  theme="preferred_color_scheme"
-                  lang="en"
-                  loading="lazy"
+                <div id="remark42"></div>
+                <Script
+                  id="remark42-config"
+                  strategy="afterInteractive"
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                      var remark_config = {
+                        host: '${process.env.NEXT_PUBLIC_REMARK42_HOST || ''}',
+                        site_id: '${process.env.NEXT_PUBLIC_REMARK42_SITE_ID || 'ocheverse'}',
+                        components: ['embed'],
+                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                      };
+                    `,
+                  }}
                 />
+                {process.env.NEXT_PUBLIC_REMARK42_HOST && (
+                  <Script
+                    src={`${process.env.NEXT_PUBLIC_REMARK42_HOST}/web/embed.js`}
+                    strategy="afterInteractive"
+                  />
+                )}
+                {!process.env.NEXT_PUBLIC_REMARK42_HOST && (
+                  <div className="text-center text-gray-400 dark:text-gray-500 py-8 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+                    <p className="text-lg font-medium mb-2">Comments coming soon</p>
+                    <p className="text-sm">Share your thoughts on the original <a href={post.link} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Substack post</a> for now.</p>
+                  </div>
+                )}
               </div>
 
             </div>

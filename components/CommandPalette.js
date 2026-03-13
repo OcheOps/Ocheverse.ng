@@ -4,9 +4,9 @@ import { useRouter } from 'next/router';
 
 export default function CommandPalette() {
     const [open, setOpen] = useState(false);
+    const [blogPosts, setBlogPosts] = useState([]);
     const router = useRouter();
 
-    // Toggle with Ctrl+K or Cmd+K
     useEffect(() => {
         const down = (e) => {
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -17,6 +17,24 @@ export default function CommandPalette() {
         document.addEventListener('keydown', down);
         return () => document.removeEventListener('keydown', down);
     }, []);
+
+    useEffect(() => {
+        if (open && blogPosts.length === 0) {
+            fetch('/api/feed')
+                .then(res => res.text())
+                .then(xml => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(xml, 'text/xml');
+                    const items = doc.querySelectorAll('item');
+                    const posts = Array.from(items).slice(0, 20).map(item => ({
+                        title: item.querySelector('title')?.textContent || '',
+                        link: item.querySelector('link')?.textContent || '',
+                    }));
+                    setBlogPosts(posts);
+                })
+                .catch(() => {});
+        }
+    }, [open, blogPosts.length]);
 
     const runCommand = (command) => {
         setOpen(false);
@@ -46,9 +64,28 @@ export default function CommandPalette() {
                         <Item onSelect={() => runCommand(() => router.push('/'))} icon="🏠">Home</Item>
                         <Item onSelect={() => runCommand(() => router.push('/blog'))} icon="✍️">Blog</Item>
                         <Item onSelect={() => runCommand(() => router.push('/learn'))} icon="🎓">Learn</Item>
+                        <Item onSelect={() => runCommand(() => router.push('/now'))} icon="⚡">Now</Item>
+                        <Item onSelect={() => runCommand(() => router.push('/resources'))} icon="📚">Resources</Item>
                         <Item onSelect={() => runCommand(() => router.push('/game'))} icon="🐍">Snake Game</Item>
                         <Item onSelect={() => runCommand(() => router.push('/2048'))} icon="🔢">2048 Game</Item>
                     </Command.Group>
+
+                    {blogPosts.length > 0 && (
+                        <Command.Group heading="Blog Posts" className="text-xs font-bold text-gray-400 dark:text-gray-500 px-2 py-1 mb-1 mt-2">
+                            {blogPosts.map((post, i) => (
+                                <Item
+                                    key={i}
+                                    onSelect={() => runCommand(() => {
+                                        const path = new URL(post.link).pathname;
+                                        router.push(path);
+                                    })}
+                                    icon="📝"
+                                >
+                                    {post.title}
+                                </Item>
+                            ))}
+                        </Command.Group>
+                    )}
 
                     <Command.Group heading="Socials" className="text-xs font-bold text-gray-400 dark:text-gray-500 px-2 py-1 mb-1 mt-2">
                         <Item onSelect={() => runCommand(() => window.open('https://github.com/OcheOps', '_blank'))} icon="🐙">GitHub</Item>

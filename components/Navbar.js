@@ -37,6 +37,7 @@ export default function Navbar() {
         { name: 'Home', path: '/' },
         { name: 'Blog', path: '/blog' },
         { name: 'Learn', path: '/learn' },
+        { name: 'Now', path: '/now' },
         { name: 'Resources', path: '/resources' },
         { name: 'Snake 🐍', path: '/game' },
         { name: '2048 🔢', path: '/2048' },

@@ -12,6 +12,7 @@ export default function SnakeGame() {
     const [highScore, setHighScore] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const gameLoopRef = useRef();
+    const touchStart = useRef(null);
 
     useEffect(() => {
         const saved = localStorage.getItem('snakeHighScore');
@@ -106,18 +107,43 @@ export default function SnakeGame() {
         generateFood();
     };
 
+    const handleTouchStart = (e) => {
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!touchStart.current) return;
+        const dx = e.changedTouches[0].clientX - touchStart.current.x;
+        const dy = e.changedTouches[0].clientY - touchStart.current.y;
+        const minSwipe = 30;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > minSwipe) {
+                if (dx > 0 && direction !== 'LEFT') setDirection('RIGHT');
+                else if (dx < 0 && direction !== 'RIGHT') setDirection('LEFT');
+            }
+        } else {
+            if (Math.abs(dy) > minSwipe) {
+                if (dy > 0 && direction !== 'UP') setDirection('DOWN');
+                else if (dy < 0 && direction !== 'DOWN') setDirection('UP');
+            }
+        }
+        touchStart.current = null;
+    };
+
     return (
-        <div className="flex flex-col items-center justify-center p-4 font-mono">
-            <div className="mb-4 text-center">
+        <div className="flex flex-col items-center justify-center w-full px-4 font-mono">
+            <div className="mb-4 text-center w-full max-w-[400px]">
                 <p className="text-sm text-green-500 mb-2">Build Status: PROD</p>
-                <div className="flex gap-8 text-xl font-bold text-gray-200">
+                <div className="flex justify-center gap-4 sm:gap-8 text-base sm:text-xl font-bold text-gray-200">
                     <span>Score: {score}</span>
                     <span>High Score: {highScore}</span>
                 </div>
             </div>
 
-            <div className="relative bg-black border-4 border-gray-800 rounded-lg shadow-2xl overflow-hidden"
-                style={{ width: 300, height: 300 }}>
+            <div className="relative bg-black border-4 border-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[400px] aspect-square"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}>
 
                 {/* Grid Background */}
                 <div className="absolute inset-0 opacity-10"
@@ -166,15 +192,21 @@ export default function SnakeGame() {
                 )}
             </div>
 
-            <div className="mt-8 text-gray-500 text-sm text-center">
-                <p className="mb-2">Arrow keys to move • Space to pause</p>
-                <div className="grid grid-cols-3 gap-2 w-32 mx-auto sm:hidden">
-                    <div></div>
-                    <button onClick={() => setDirection('UP')} className="bg-gray-800 p-2 rounded">⬆️</button>
-                    <div></div>
-                    <button onClick={() => setDirection('LEFT')} className="bg-gray-800 p-2 rounded">⬅️</button>
-                    <button onClick={() => setDirection('DOWN')} className="bg-gray-800 p-2 rounded">⬇️</button>
-                    <button onClick={() => setDirection('RIGHT')} className="bg-gray-800 p-2 rounded">➡️</button>
+            <div className="mt-6 text-gray-500 text-sm text-center max-w-sm">
+                <p className="hidden sm:block mb-2">Arrow keys to move • Space to pause</p>
+                <p className="sm:hidden mb-4">Swipe or use buttons to move.</p>
+                <div className="sm:hidden space-y-2">
+                    <button onClick={() => setIsPaused(p => !p)} className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-bold active:scale-95 transition-transform mb-2">
+                        {isPaused ? '▶ Resume' : '⏸ Pause'}
+                    </button>
+                    <div className="grid grid-cols-3 gap-2 w-36 mx-auto">
+                        <div></div>
+                        <button onClick={() => { if (direction !== 'DOWN') setDirection('UP'); }} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">↑</button>
+                        <div></div>
+                        <button onClick={() => { if (direction !== 'RIGHT') setDirection('LEFT'); }} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">←</button>
+                        <button onClick={() => { if (direction !== 'UP') setDirection('DOWN'); }} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">↓</button>
+                        <button onClick={() => { if (direction !== 'LEFT') setDirection('RIGHT'); }} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">→</button>
+                    </div>
                 </div>
             </div>
         </div>

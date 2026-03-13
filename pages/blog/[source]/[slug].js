@@ -196,7 +196,7 @@ export default function BlogPost({ post, relatedPosts = [] }) {
               </Link>
               
               <header className="mb-10 text-center">
-                <div className="flex justify-center items-center gap-2 mb-4 whitespace-nowrap">
+                <div className="flex justify-center items-center gap-2 mb-4 flex-wrap">
                   <span className="text-sm font-bold uppercase tracking-widest text-gray-500">
                     {post.sourceName}
                   </span>
@@ -243,15 +243,15 @@ export default function BlogPost({ post, relatedPosts = [] }) {
               />
               
               {/* Internal Newsletter CTA */}
-              <div className="mt-16 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-8 text-center border border-blue-100 dark:border-gray-600 shadow-sm">
-                <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Enjoyed this post?</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-lg mx-auto">
-                  Subscribe for updates to get future articles on engineering and system design sent directly to your inbox.
+              <div className="mt-16 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 sm:p-8 text-center border border-blue-100 dark:border-gray-600 shadow-sm">
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 text-gray-900 dark:text-white">Enjoyed this post?</h3>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-6 max-w-lg mx-auto">
+                  Subscribe to <span className="font-semibold">{post.sourceName}</span> to get future articles sent directly to your inbox.
                 </p>
-                <form action="https://ocheverse.substack.com/subscribe" target="_blank" method="GET" className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-                  <input type="email" name="email" placeholder="jamie@example.com" className="px-4 py-3 rounded-full flex-1 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900" required />
-                  <button type="submit" className="bg-blue-600 text-white font-bold py-3 px-6 rounded-full hover:bg-blue-700 transition shadow-md">
-                    Subscribe
+                <form action={`https://${post.source === 'ocheverse' ? 'ocheverse' : 'bpur'}.substack.com/subscribe`} target="_blank" method="GET" className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+                  <input type="email" name="email" placeholder="you@example.com" className="px-4 py-3 rounded-full flex-1 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 text-sm sm:text-base" required />
+                  <button type="submit" className={`${post.source === 'ocheverse' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold py-3 px-6 rounded-full transition shadow-md text-sm sm:text-base whitespace-nowrap`}>
+                    Subscribe to {post.sourceName}
                   </button>
                 </form>
               </div>

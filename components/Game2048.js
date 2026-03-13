@@ -107,6 +107,7 @@ export default function Game2048() {
     const [score, setScore] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [isWon, setIsWon] = useState(false);
+    const touchStart = React.useRef(null);
 
     // Initialize
     useEffect(() => {
@@ -275,19 +276,38 @@ export default function Game2048() {
     };
 
 
+    const handleTouchStart = (e) => {
+        touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!touchStart.current) return;
+        const dx = e.changedTouches[0].clientX - touchStart.current.x;
+        const dy = e.changedTouches[0].clientY - touchStart.current.y;
+        const minSwipe = 30;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > minSwipe) move(dx > 0 ? RIGHT : LEFT);
+        } else {
+            if (Math.abs(dy) > minSwipe) move(dy > 0 ? DOWN : UP);
+        }
+        touchStart.current = null;
+    };
+
     return (
-        <div className="flex flex-col items-center">
-            <div className="flex justify-between w-[300px] sm:w-[350px] mb-4">
-                <div className="bg-gray-700 p-2 rounded text-white font-bold px-4">
+        <div className="flex flex-col items-center w-full px-4">
+            <div className="flex justify-between w-full max-w-[400px] mb-4">
+                <div className="bg-gray-700 p-2 rounded text-white font-bold px-4 text-sm sm:text-base">
                     Score: {score}
                 </div>
-                <button onClick={initGame} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors">
+                <button onClick={initGame} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors text-sm sm:text-base">
                     New Game
                 </button>
             </div>
 
-            <div className="relative bg-gray-800 p-2 sm:p-4 rounded-xl cursor-default select-none touch-none"
-                style={{ width: 'min(90vw, 400px)', height: 'min(90vw, 400px)' }}> {/* Square aspect ratio */}
+            <div className="relative bg-gray-800 p-2 sm:p-4 rounded-xl cursor-default select-none w-full max-w-[400px] aspect-square"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}>
 
                 {/* Grid Background */}
                 <div className="absolute inset-0 p-2 sm:p-4 grid grid-cols-4 grid-rows-4 gap-2 sm:gap-3">
@@ -321,8 +341,17 @@ export default function Game2048() {
 
             </div>
 
-            <div className="mt-8 text-gray-500 text-sm max-w-sm text-center">
-                Use <strong>Arrow Keys</strong> to move tiles. Combine same numbers to reach <strong>2048</strong>!
+            <div className="mt-6 text-gray-500 text-sm max-w-sm text-center">
+                <p className="hidden sm:block">Use <strong>Arrow Keys</strong> to move tiles. Combine same numbers to reach <strong>2048</strong>!</p>
+                <p className="sm:hidden mb-4">Swipe or use buttons to move tiles.</p>
+                <div className="grid grid-cols-3 gap-2 w-36 mx-auto sm:hidden">
+                    <div></div>
+                    <button onClick={() => move(UP)} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">↑</button>
+                    <div></div>
+                    <button onClick={() => move(LEFT)} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">←</button>
+                    <button onClick={() => move(DOWN)} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">↓</button>
+                    <button onClick={() => move(RIGHT)} className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-lg text-lg active:scale-95 transition-transform">→</button>
+                </div>
             </div>
 
         </div>

@@ -1,9 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',       // Makes a smaller runtime bundle
+  output: 'standalone',
   images: {
-    unoptimized: false        // Enables sharp for image optimization
-  }
+    unoptimized: false
+  },
+  async rewrites() {
+    return [
+      { source: '/sitemap.xml', destination: '/api/sitemap' },
+      { source: '/feed.xml', destination: '/api/feed' },
+    ];
+  },
 };
 
 module.exports = nextConfig;

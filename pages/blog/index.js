@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Parser from "rss-parser";
 import Link from "next/link";
+import { useState } from "react";
 
 // Helper function to extract the first image from HTML content
 const extractImage = (content) => {
@@ -10,7 +11,28 @@ const extractImage = (content) => {
   return match ? match[1] : null;
 };
 
-// Start: 5e64d34a-f851-456a-b26d-bb630ef5d86a
+const extractExcerpt = (content, maxLen = 155) => {
+  if (!content) return '';
+  const text = content.replace(/<[^>]*>?/gm, '').trim();
+  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+};
+
+const mapFeedItem = (item, source) => {
+  let slug = item.link.split('/').pop();
+  if (slug.includes('?')) slug = slug.split('?')[0];
+  const rawContent = item['content:encoded'] || item.content || '';
+  return {
+    title: item.title,
+    link: item.link,
+    coverImage: extractImage(rawContent) || null,
+    isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
+    slug,
+    source,
+    excerpt: extractExcerpt(rawContent),
+    readingTime: Math.ceil((rawContent.replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
+  };
+};
+
 export async function getStaticProps() {
   const parser = new Parser();
 
@@ -19,36 +41,14 @@ export async function getStaticProps() {
 
   try {
     const ocheverseFeed = await parser.parseURL("https://ocheverse.substack.com/feed");
-    ocheverseItems = ocheverseFeed.items.slice(0, 6).map(item => {
-      let slug = item.link.split('/').pop();
-      if (slug.includes('?')) slug = slug.split('?')[0];
-      return {
-        ...item,
-        coverImage: extractImage(item['content:encoded'] || item.content) || null,
-        isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
-        slug,
-        source: 'ocheverse',
-        readingTime: Math.ceil(((item['content:encoded'] || item.content || '').replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
-      };
-    });
+    ocheverseItems = ocheverseFeed.items.map(item => mapFeedItem(item, 'ocheverse'));
   } catch (e) {
     console.error("Failed to fetch Ocheverse feed", e);
   }
 
   try {
     const bpurFeed = await parser.parseURL("https://bpur.substack.com/feed");
-    bpurItems = bpurFeed.items.slice(0, 6).map(item => {
-      let slug = item.link.split('/').pop();
-      if (slug.includes('?')) slug = slug.split('?')[0];
-      return {
-        ...item,
-        coverImage: extractImage(item['content:encoded'] || item.content) || null,
-        isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
-        slug,
-        source: 'bpur',
-        readingTime: Math.ceil(((item['content:encoded'] || item.content || '').replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
-      };
-    });
+    bpurItems = bpurFeed.items.map(item => mapFeedItem(item, 'bpur'));
   } catch (e) {
     console.error("Failed to fetch BPUR feed", e);
   }
@@ -58,16 +58,32 @@ export async function getStaticProps() {
       ocheversePosts: ocheverseItems,
       bpurPosts: bpurItems,
     },
-    revalidate: 3600 // revalidate every hour
+    revalidate: 3600
   };
 }
 
+const INITIAL_COUNT = 6;
+
 export default function Blog({ ocheversePosts, bpurPosts }) {
+  const [showAllOcheverse, setShowAllOcheverse] = useState(false);
+  const [showAllBpur, setShowAllBpur] = useState(false);
+
+  const visibleOcheverse = showAllOcheverse ? ocheversePosts : ocheversePosts.slice(0, INITIAL_COUNT);
+  const visibleBpur = showAllBpur ? bpurPosts : bpurPosts.slice(0, INITIAL_COUNT);
+
   return (
     <>
       <Head>
         <title>Blog – Ocheverse</title>
         <meta name="description" content="Read the latest engineering stories and essays from David Gideon." />
+        <meta property="og:title" content="Blog – Ocheverse" />
+        <meta property="og:description" content="Engineering war stories, philosophical essays, and everything in between." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://ocheverse.ng/blog" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Blog – Ocheverse" />
+        <meta name="twitter:description" content="Engineering war stories, philosophical essays, and everything in between." />
+        <link rel="alternate" type="application/rss+xml" title="Ocheverse Blog RSS" href="/api/feed" />
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 pb-20 animate-fade-in-down">
@@ -101,12 +117,23 @@ export default function Blog({ ocheversePosts, bpurPosts }) {
 
             {/* Grid: 2 columns on mobile, 3 on large screens */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {ocheversePosts.map((post, i) => (
+              {visibleOcheverse.map((post, i) => (
                 <BlogCard key={i} post={post} category="Engineering" colorClass="blue" delay={i * 0.05} />
               ))}
             </div>
 
-            <div className="mt-8 text-center sm:hidden">
+            {ocheversePosts.length > INITIAL_COUNT && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setShowAllOcheverse(!showAllOcheverse)}
+                  className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-all"
+                >
+                  {showAllOcheverse ? '← Show Less' : `Show All ${ocheversePosts.length} Posts →`}
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 text-center sm:hidden">
               <a href="https://ocheverse.substack.com" target="_blank" className="text-blue-600 font-semibold hover:underline">
                 View all on Substack →
               </a>
@@ -146,11 +173,23 @@ export default function Blog({ ocheversePosts, bpurPosts }) {
 
             {/* Grid: 2 columns on mobile, 3 on large screens */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {bpurPosts.map((post, i) => (
+              {visibleBpur.map((post, i) => (
                 <BlogCard key={i} post={post} category="Essay" colorClass="purple" delay={i * 0.05} />
               ))}
             </div>
-            <div className="mt-8 text-center sm:hidden">
+
+            {bpurPosts.length > INITIAL_COUNT && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setShowAllBpur(!showAllBpur)}
+                  className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-all"
+                >
+                  {showAllBpur ? '← Show Less' : `Show All ${bpurPosts.length} Posts →`}
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 text-center sm:hidden">
               <a href="https://bpur.substack.com" target="_blank" className="text-purple-600 font-semibold hover:underline">
                 View all on Substack →
               </a>

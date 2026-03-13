@@ -76,8 +76,9 @@ export default function Home() {
 
       {/* Background Gradient Mesh (Fixed) */}
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-[100px] animate-float-slow" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] animate-float-slow-reverse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-green-400/10 rounded-full blur-[120px] animate-pulse" />
       </div>
 
       <main className="text-gray-900 dark:text-gray-100 min-h-screen pt-24">
@@ -106,13 +107,39 @@ export default function Home() {
             Building for the Cloud, automating the chaos, and finding stillness in the terminal.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-4 mb-16">
             <a href="#projects" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform">
               See the Work
             </a>
             <a href="mailto:ocheworks@gmail.com" className="bg-transparent text-gray-900 dark:text-white font-bold py-3 px-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               Let's Talk
             </a>
+          </div>
+
+          {/* Mini Terminal */}
+          <div className="w-full max-w-lg mx-auto">
+            <div className="bg-gray-900 dark:bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 dark:bg-gray-900 border-b border-gray-700">
+                <span className="w-3 h-3 rounded-full bg-red-500"></span>
+                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <span className="w-3 h-3 rounded-full bg-green-500"></span>
+                <span className="ml-2 text-xs text-gray-400 font-mono">oche@ocheverse:~</span>
+              </div>
+              <div className="p-4 font-mono text-sm text-green-400 space-y-1.5">
+                <p><span className="text-blue-400">$</span> whoami</p>
+                <p className="text-gray-300">devops-engineer && infrastructure-storyteller</p>
+                <p><span className="text-blue-400">$</span> kubectl get pods -n passion</p>
+                <p className="text-gray-300">NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;READY&nbsp;&nbsp;&nbsp;STATUS</p>
+                <p className="text-gray-300">cloud-engineering&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
+                <p className="text-gray-300">writing-blog&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
+                <p className="text-gray-300">liverpool-fc&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
+                <p className="text-gray-300">touching-grass&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-yellow-400">Pending</span></p>
+                <p><span className="text-blue-400">$</span> <span className="animate-pulse">_</span></p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">K</kbd> to search anything
+            </p>
           </div>
         </section>
 

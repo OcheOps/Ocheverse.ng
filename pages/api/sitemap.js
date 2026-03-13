@@ -1,4 +1,4 @@
-import { createParser } from "../../lib/rssParser";
+import { createParser, FEEDS } from "../../lib/rssParser";
 
 const SITE_URL = "https://ocheverse.ng";
 
@@ -17,8 +17,8 @@ export default async function handler(req, res) {
   let blogEntries = [];
 
   const feeds = [
-    { source: "ocheverse", url: "https://ocheverse.substack.com/feed" },
-    { source: "bpur", url: "https://bpur.substack.com/feed" },
+    { source: "ocheverse", url: FEEDS.ocheverse },
+    { source: "bpur", url: FEEDS.bpur },
   ];
 
   for (const feed of feeds) {

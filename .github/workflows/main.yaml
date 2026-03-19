@@ -11,6 +11,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Import secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.ocheverse.ng
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/ocheverse/web NEXT_PUBLIC_UMAMI_WEBSITE_ID ;
+            secret/data/ocheverse/web RSS_PROXY_URL ;
+            secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_HOST ;
+            secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_SITE_ID ;
+            secret/data/ocheverse/web SPOTIFY_CLIENT_ID ;
+            secret/data/ocheverse/web SPOTIFY_CLIENT_SECRET ;
+            secret/data/ocheverse/web SPOTIFY_REFRESH_TOKEN ;
+            secret/data/ocheverse/web GITHUB_TOKEN
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -29,11 +46,32 @@ jobs:
           tags: |
             ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
             ${{ secrets.REGISTRY_HOST }}/ocheverse:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ env.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+            RSS_PROXY_URL=${{ env.RSS_PROXY_URL }}
+            NEXT_PUBLIC_REMARK42_HOST=${{ env.NEXT_PUBLIC_REMARK42_HOST }}
+            NEXT_PUBLIC_REMARK42_SITE_ID=${{ env.NEXT_PUBLIC_REMARK42_SITE_ID }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Import runtime secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.ocheverse.ng
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            secret/data/ocheverse/web SPOTIFY_CLIENT_ID ;
+            secret/data/ocheverse/web SPOTIFY_CLIENT_SECRET ;
+            secret/data/ocheverse/web SPOTIFY_REFRESH_TOKEN ;
+            secret/data/ocheverse/web GITHUB_TOKEN ;
+            secret/data/ocheverse/web RSS_PROXY_URL ;
+            secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_HOST ;
+            secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_SITE_ID
+
       - name: Deploy to Contabo via SSH (pull-only)
         uses: appleboy/ssh-action@master
         with:
@@ -42,6 +80,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           command_timeout: 30m
+          envs: SPOTIFY_CLIENT_ID,SPOTIFY_CLIENT_SECRET,SPOTIFY_REFRESH_TOKEN,GITHUB_TOKEN,RSS_PROXY_URL,NEXT_PUBLIC_REMARK42_HOST,NEXT_PUBLIC_REMARK42_SITE_ID
           script: |
             set -euo pipefail
 
@@ -63,6 +102,14 @@ jobs:
               --name ocheverse \
               --restart unless-stopped \
               --network "$NETWORK" \
+              -e SPOTIFY_CLIENT_ID="$SPOTIFY_CLIENT_ID" \
+              -e SPOTIFY_CLIENT_SECRET="$SPOTIFY_CLIENT_SECRET" \
+              -e SPOTIFY_REFRESH_TOKEN="$SPOTIFY_REFRESH_TOKEN" \
+              -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+              -e RSS_PROXY_URL="$RSS_PROXY_URL" \
+              -e NEXT_PUBLIC_REMARK42_HOST="$NEXT_PUBLIC_REMARK42_HOST" \
+              -e NEXT_PUBLIC_REMARK42_SITE_ID="$NEXT_PUBLIC_REMARK42_SITE_ID" \
+              -v ocheverse-data:/app/.data \
               --label "traefik.enable=true" \
               --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
               --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \

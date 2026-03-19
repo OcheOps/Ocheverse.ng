@@ -9,6 +9,7 @@ import Script from 'next/script';
 import ReadingProgress from '../../../components/ReadingProgress';
 import BackToTop from '../../../components/BackToTop';
 import CopyCodeButton from '../../../components/CopyCodeButton';
+import Reactions from '../../../components/Reactions';
 
 export async function getStaticPaths() {
   const parser = createParser();
@@ -242,6 +243,12 @@ export default function BlogPost({ post, relatedPosts = [] }) {
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
               
+              {/* Reactions */}
+              <div className="mt-12 mb-4 text-center">
+                <p className="text-sm text-gray-400 mb-4">How did this post make you feel?</p>
+                <Reactions slug={`${post.source}/${post.slug}`} />
+              </div>
+
               {/* Internal Newsletter CTA */}
               <div className="mt-16 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 sm:p-8 text-center border border-blue-100 dark:border-gray-600 shadow-sm">
                 <h3 className="text-xl sm:text-2xl font-bold mb-3 text-gray-900 dark:text-white">Enjoyed this post?</h3>

@@ -1,4 +1,9 @@
 import Head from "next/head";
+import dynamic from "next/dynamic";
+import NowPlaying from "../components/NowPlaying";
+import GitHubActivity from "../components/GitHubActivity";
+
+const VisitorGlobe = dynamic(() => import("../components/VisitorGlobe"), { ssr: false });
 
 const NOW_DATA = {
   lastUpdated: "March 2026",
@@ -67,7 +72,7 @@ export default function Now() {
             Now
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            What I'm focused on right now. Inspired by{" "}
+            What I&apos;m focused on right now. Inspired by{" "}
             <a
               href="https://nownownow.com/about"
               target="_blank"
@@ -83,7 +88,18 @@ export default function Now() {
         </div>
 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-10">
-          {NOW_DATA.sections.map((section, i) => (
+          <NowPlaying />
+
+          {/* GitHub Activity */}
+          <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-2xl">🐙</span>
+              <h2 className="text-2xl font-bold">Shipping</h2>
+            </div>
+            <GitHubActivity />
+          </section>
+
+          {NOW_DATA.sections.map((section) => (
             <section
               key={section.title}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow"
@@ -109,6 +125,15 @@ export default function Now() {
               </ul>
             </section>
           ))}
+
+          {/* Visitor Globe */}
+          <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="text-2xl">🌍</span>
+              <h2 className="text-2xl font-bold">Visitors</h2>
+            </div>
+            <VisitorGlobe />
+          </section>
 
           <div className="text-center pt-8">
             <p className="text-gray-400 text-sm">

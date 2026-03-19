@@ -8,6 +8,9 @@ const staticPages = [
   { path: "/now", priority: "0.7", changefreq: "monthly" },
   { path: "/learn", priority: "0.6", changefreq: "monthly" },
   { path: "/resources", priority: "0.6", changefreq: "monthly" },
+  { path: "/music", priority: "0.6", changefreq: "weekly" },
+  { path: "/stack", priority: "0.5", changefreq: "monthly" },
+  { path: "/guestbook", priority: "0.5", changefreq: "daily" },
   { path: "/game", priority: "0.3", changefreq: "yearly" },
   { path: "/2048", priority: "0.3", changefreq: "yearly" },
 ];

@@ -1,8 +1,24 @@
 import Image from 'next/image';
-import { currentlyListening as data } from '../data/siteData';
+import { useState, useEffect } from 'react';
 
 export default function NowPlaying() {
-    if (!data) return <div className="animate-pulse h-16 w-full bg-gray-100 dark:bg-gray-800 rounded-lg" />;
+    const [data, setData] = useState(null);
+
+    useEffect(() => {
+        const fetchNowPlaying = () =>
+            fetch('/api/now-playing')
+                .then((r) => r.json())
+                .then(setData)
+                .catch(() => {});
+
+        fetchNowPlaying();
+        const interval = setInterval(fetchNowPlaying, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (!data) {
+        return <div className="animate-pulse h-20 w-full bg-gray-100 dark:bg-gray-800 rounded-2xl" />;
+    }
 
     return (
         <div className="flex items-center gap-4 bg-white dark:bg-gray-800/50 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 w-full max-w-xl mx-auto backdrop-blur-sm transition-all hover:scale-[1.01]">
@@ -10,62 +26,66 @@ export default function NowPlaying() {
                 {data.albumImageUrl ? (
                     <Image
                         src={data.albumImageUrl}
-                        alt={data.album}
+                        alt={data.album || 'Album art'}
                         fill
                         className={`rounded-lg object-cover shadow-md ${data.isPlaying ? 'animate-[spin_8s_linear_infinite]' : ''}`}
+                        unoptimized
                     />
                 ) : (
-                    <div className="w-full h-full bg-green-500 rounded-lg flex items-center justify-center">
-                        <span className="text-3xl">🎵</span>
+                    <div className="w-full h-full bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
                     </div>
                 )}
 
-                {/* Status Dot */}
-                <div className="absolute -top-1 -right-1 bg-white dark:bg-gray-900 rounded-full p-1">
-                    <div className={`w-3 h-3 rounded-full ${data.isPlaying ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <div className="absolute -top-1 -right-1 bg-white dark:bg-gray-900 rounded-full p-0.5">
+                    <div className={`w-3 h-3 rounded-full ${data.isPlaying ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
                 </div>
             </div>
 
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <p className="text-xs uppercase font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-1">
-                    {data.isPlaying ? 'Now Playing' : 'Last Played / Offline'}
+            <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase font-bold text-green-600 dark:text-green-400 tracking-widest mb-1">
+                    {data.isPlaying ? '♫ Now Playing' : 'Spotify · Offline'}
                 </p>
 
-                <a href={data.songUrl ?? '#'} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
-                    <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate leading-tight">
-                        {data.title || 'Not Listening'}
-                    </h3>
-                </a>
-
-                <p className="text-gray-600 dark:text-gray-300 text-sm truncate">
-                    {data.artist || 'Spotify'}
-                </p>
+                {data.title ? (
+                    <>
+                        <a href={data.songUrl} target="_blank" rel="noopener noreferrer" className="block truncate hover:underline">
+                            <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg truncate leading-tight">
+                                {data.title}
+                            </h3>
+                        </a>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+                            {data.artist}
+                        </p>
+                    </>
+                ) : (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Not listening to anything right now</p>
+                )}
             </div>
 
-            {/* Equalizer Animation */}
             {data.isPlaying && (
-                <div className="flex gap-1 items-end h-6 mx-2">
-                    <span className="w-1 bg-green-500 rounded-t animate-[music_1s_ease-in-out_infinite]"></span>
-                    <span className="w-1 bg-green-500 rounded-t animate-[music_1.2s_ease-in-out_infinite]" style={{ animationDelay: '0.1s' }}></span>
-                    <span className="w-1 bg-green-500 rounded-t animate-[music_0.8s_ease-in-out_infinite]" style={{ animationDelay: '0.2s' }}></span>
-                    <span className="w-1 bg-green-500 rounded-t animate-[music_1.1s_ease-in-out_infinite]" style={{ animationDelay: '0.3s' }}></span>
+                <div className="flex gap-[3px] items-end h-5 flex-shrink-0">
+                    {[1, 1.2, 0.8, 1.1].map((dur, i) => (
+                        <span
+                            key={i}
+                            className="w-[3px] bg-green-500 rounded-full"
+                            style={{
+                                animation: `nowPlayingBar ${dur}s ease-in-out infinite`,
+                                animationDelay: `${i * 0.1}s`,
+                            }}
+                        />
+                    ))}
                 </div>
             )}
 
-            <div className="ml-auto">
-                <a href={data.songUrl ?? '#'} target="_blank" className="text-2xl text-green-500 hover:scale-110 transition-transform block">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141 4.38-1.381 9.841-.721 13.441 1.441.421.3.6.84.3 1.38zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                    </svg>
-                </a>
-            </div>
-
             <style jsx>{`
-        @keyframes music {
-            0%, 100% { height: 20%; }
-            50% { height: 100%; }
-        }
-      `}</style>
+                @keyframes nowPlayingBar {
+                    0%, 100% { height: 20%; }
+                    50% { height: 100%; }
+                }
+            `}</style>
         </div>
     );
 }

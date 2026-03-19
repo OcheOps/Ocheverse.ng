@@ -38,9 +38,10 @@ export default function Navbar() {
         { name: 'Blog', path: '/blog' },
         { name: 'Learn', path: '/learn' },
         { name: 'Now', path: '/now' },
+        { name: 'Music', path: '/music' },
+        { name: 'Stack', path: '/stack' },
+        { name: 'Guestbook', path: '/guestbook' },
         { name: 'Resources', path: '/resources' },
-        { name: 'Snake 🐍', path: '/game' },
-        { name: '2048 🔢', path: '/2048' },
     ];
 
     return (
@@ -48,7 +49,7 @@ export default function Navbar() {
             <nav className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-full shadow-2xl px-6 py-3 flex items-center gap-8 transition-all hover:scale-[1.02] duration-300">
 
                 {/* Minimal Logo */}
-                <Link href="/" className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                <Link href="/" className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600" data-easter-egg>
                     Ocheverse
                 </Link>
 

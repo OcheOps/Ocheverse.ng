@@ -2,7 +2,11 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    unoptimized: false
+    unoptimized: false,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'i.scdn.co' },
+      { protocol: 'https', hostname: 'unpkg.com' },
+    ],
   },
   async rewrites() {
     return [

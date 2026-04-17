@@ -42,6 +42,8 @@ export default function Navbar() {
         { name: 'Stack', path: '/stack' },
         { name: 'Guestbook', path: '/guestbook' },
         { name: 'Resources', path: '/resources' },
+        { name: 'Snake 🐍', path: '/game' },
+        { name: '2048 🔢', path: '/2048' },
     ];
 
     return (

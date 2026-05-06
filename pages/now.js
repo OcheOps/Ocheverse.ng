@@ -64,6 +64,9 @@ export default function Now() {
         <meta property="og:title" content="Now – Ocheverse" />
         <meta property="og:description" content="What David Gideon is currently working on, learning, and thinking about." />
         <meta property="og:url" content="https://ocheverse.ng/now" />
+        <meta property="og:image" content="https://ocheverse.ng/api/og?title=What%20I%27m%20focused%20on%20right%20now&category=Now" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=What%20I%27m%20focused%20on%20right%20now&category=Now" />
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 pb-20">

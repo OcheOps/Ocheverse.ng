@@ -178,11 +178,11 @@ export default function BlogPost({ post, relatedPosts = [] }) {
         <meta property="og:description" content={post.excerpt} />
         <meta property="og:type" content="article" />
         <meta property="og:url" content={postUrl} />
-        {post.coverImage && <meta property="og:image" content={post.coverImage} />}
-        <meta name="twitter:card" content={post.coverImage ? "summary_large_image" : "summary"} />
+        <meta property="og:image" content={post.coverImage || `https://ocheverse.ng/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.sourceName)}`} />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={post.title} />
         <meta name="twitter:description" content={post.excerpt} />
-        {post.coverImage && <meta name="twitter:image" content={post.coverImage} />}
+        <meta name="twitter:image" content={post.coverImage || `https://ocheverse.ng/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.sourceName)}`} />
         <meta property="article:published_time" content={post.pubDate} />
         <meta property="article:author" content={post.author} />
       </Head>

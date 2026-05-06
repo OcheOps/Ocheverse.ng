@@ -72,6 +72,12 @@ export default function Home() {
       <Head>
         <title>David Gideon – DevOps Engineer & Solutions Architect | Ocheverse</title>
         <meta name="description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions at Ocheverse." />
+        <meta property="og:title" content="David Gideon – DevOps Engineer & Solutions Architect" />
+        <meta property="og:description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions." />
+        <meta property="og:url" content="https://ocheverse.ng" />
+        <meta property="og:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
       </Head>
 
       {/* Background Gradient Mesh (Fixed) */}

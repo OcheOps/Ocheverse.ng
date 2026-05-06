@@ -11,6 +11,7 @@
   "dependencies": {
     "@giscus/react": "^3.1.0",
     "@tailwindcss/typography": "^0.5.19",
+    "@vercel/og": "^0.11.1",
     "autoprefixer": "^10.4.14",
     "cheerio": "^1.2.0",
     "cmdk": "^1.1.1",

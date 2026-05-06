@@ -80,9 +80,11 @@ export default function Blog({ ocheversePosts, bpurPosts }) {
         <meta property="og:description" content="Engineering war stories, philosophical essays, and everything in between." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://ocheverse.ng/blog" />
+        <meta property="og:image" content="https://ocheverse.ng/api/og?title=Engineering%20Stories%20%26%20Essays&category=Blog" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Blog – Ocheverse" />
         <meta name="twitter:description" content="Engineering war stories, philosophical essays, and everything in between." />
+        <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=Engineering%20Stories%20%26%20Essays&category=Blog" />
         <link rel="alternate" type="application/rss+xml" title="Ocheverse Blog RSS" href="/api/feed" />
       </Head>
 

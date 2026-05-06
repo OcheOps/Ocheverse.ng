@@ -235,11 +235,8 @@ export default function BlogPost({ post, relatedPosts = [] }) {
               </header>
 
               {/* Render the post content */}
-              <div 
-                className="prose prose-lg dark:prose-invert max-w-none 
-                           prose-a:text-blue-600 hover:prose-a:text-blue-800 
-                           prose-img:rounded-xl prose-img:shadow-md 
-                           prose-headings:scroll-mt-24 mx-auto"
+              <div
+                className="prose prose-lg dark:prose-invert max-w-none prose-a:text-blue-600 hover:prose-a:text-blue-800 prose-img:rounded-xl prose-img:shadow-md prose-headings:scroll-mt-24 mx-auto"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
               

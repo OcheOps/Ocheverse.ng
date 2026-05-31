@@ -185,6 +185,36 @@ export default function BlogPost({ post, relatedPosts = [] }) {
         <meta name="twitter:image" content={post.coverImage || `https://ocheverse.ng/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.sourceName)}`} />
         <meta property="article:published_time" content={post.pubDate} />
         <meta property="article:author" content={post.author} />
+        <link rel="canonical" href={post.link} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BlogPosting",
+              headline: post.title,
+              description: post.excerpt,
+              image: post.coverImage || `https://ocheverse.ng/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.sourceName)}`,
+              datePublished: post.pubDate,
+              dateModified: post.pubDate,
+              author: {
+                "@type": "Person",
+                name: post.author || "David Gideon",
+                url: "https://ocheverse.ng",
+              },
+              publisher: {
+                "@type": "Person",
+                name: "David Gideon",
+                url: "https://ocheverse.ng",
+              },
+              mainEntityOfPage: {
+                "@type": "WebPage",
+                "@id": post.link,
+              },
+              url: postUrl,
+            }),
+          }}
+        />
       </Head>
       <main className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 py-10 px-4 sm:py-20 animate-fade-in-down">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">

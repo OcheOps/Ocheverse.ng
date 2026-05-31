@@ -5,8 +5,11 @@ import GitHubActivity from "../components/GitHubActivity";
 
 const VisitorGlobe = dynamic(() => import("../components/VisitorGlobe"), { ssr: false });
 
-const NOW_DATA = {
-  lastUpdated: "March 2026",
+const GIST_ID = "b5f56f22ac86666cba5f33034ca087b8";
+const GIST_URL = `https://gist.githubusercontent.com/OcheOps/${GIST_ID}/raw/now.json`;
+
+const FALLBACK = {
+  lastUpdated: "May 2026",
   location: "Nigeria",
   sections: [
     {
@@ -55,7 +58,23 @@ const NOW_DATA = {
   ],
 };
 
-export default function Now() {
+export async function getStaticProps() {
+  let data = FALLBACK;
+  try {
+    const res = await fetch(`${GIST_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) {
+      const parsed = await res.json();
+      if (parsed && Array.isArray(parsed.sections)) {
+        data = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("[/now] Gist fetch failed, using fallback:", e.message);
+  }
+  return { props: { data }, revalidate: 600 };
+}
+
+export default function Now({ data }) {
   return (
     <>
       <Head>
@@ -86,7 +105,7 @@ export default function Now() {
             </a>
           </p>
           <p className="text-sm text-gray-400 mt-3">
-            Last updated: {NOW_DATA.lastUpdated} &middot; {NOW_DATA.location}
+            Last updated: {data.lastUpdated} &middot; {data.location}
           </p>
         </div>
 
@@ -102,7 +121,7 @@ export default function Now() {
             <GitHubActivity />
           </section>
 
-          {NOW_DATA.sections.map((section) => (
+          {data.sections.map((section) => (
             <section
               key={section.title}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow"

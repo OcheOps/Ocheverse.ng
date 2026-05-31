@@ -78,6 +78,34 @@ export default function Home() {
         <meta property="og:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Person",
+              name: "David Gideon",
+              alternateName: "OcheOps",
+              url: "https://ocheverse.ng",
+              image: "https://ocheverse.ng/profile.jpg",
+              jobTitle: "DevOps Engineer & Solutions Architect",
+              description: "DevOps engineer & infrastructure storyteller.",
+              sameAs: [
+                "https://github.com/OcheOps",
+                "https://www.linkedin.com/in/gideonodavid/",
+                "https://ocheverse.substack.com",
+                "https://bpur.substack.com",
+              ],
+              knowsAbout: [
+                "DevOps",
+                "Kubernetes",
+                "Cloud Infrastructure",
+                "Site Reliability Engineering",
+                "Automation",
+              ],
+            }),
+          }}
+        />
       </Head>
 
       {/* Background Gradient Mesh (Fixed) */}

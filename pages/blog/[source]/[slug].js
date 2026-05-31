@@ -83,7 +83,7 @@ export async function getStaticProps({ params }) {
 
     const parsedContent = $('body').html() || rawContent;
 
-    const plainText = rawContent.replace(/<[^>]*>?/gm, '').trim();
+    const plainText = cheerio.load(rawContent).root().text().replace(/\s+/g, ' ').trim();
     const excerpt = plainText.length > 155 ? plainText.slice(0, 155) + '...' : plainText;
 
     const imgMatch = rawContent.match(/<img[^>]+src="([^">]+)"/);
@@ -185,7 +185,7 @@ export default function BlogPost({ post, relatedPosts = [] }) {
         <meta name="twitter:image" content={post.coverImage || `https://ocheverse.ng/api/og?title=${encodeURIComponent(post.title)}&category=${encodeURIComponent(post.sourceName)}`} />
         <meta property="article:published_time" content={post.pubDate} />
         <meta property="article:author" content={post.author} />
-        <link rel="canonical" href={post.link} />
+        <link rel="canonical" href={post.link} key="canonical" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

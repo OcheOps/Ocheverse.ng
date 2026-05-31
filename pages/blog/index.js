@@ -2,6 +2,7 @@ import Head from "next/head";
 import { createParser, FEEDS } from "../../lib/rssParser";
 import Link from "next/link";
 import { useState } from "react";
+import * as cheerio from 'cheerio';
 
 // Helper function to extract the first image from HTML content
 const extractImage = (content) => {
@@ -13,7 +14,7 @@ const extractImage = (content) => {
 
 const extractExcerpt = (content, maxLen = 155) => {
   if (!content) return '';
-  const text = content.replace(/<[^>]*>?/gm, '').trim();
+  const text = cheerio.load(content).root().text().replace(/\s+/g, ' ').trim();
   return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
 };
 

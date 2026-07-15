@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { createParser, FEEDS } from "../../lib/rssParser";
+import { createParser, parseFeedResilient } from "../../lib/rssParser";
 import Link from "next/link";
 import { useState } from "react";
 import * as cheerio from 'cheerio';
@@ -39,27 +39,35 @@ export async function getStaticProps() {
 
   let ocheverseItems = [];
   let bpurItems = [];
+  let ocheverseOk = false;
+  let bpurOk = false;
 
   try {
-    const ocheverseFeed = await parser.parseURL(FEEDS.ocheverse);
+    const ocheverseFeed = await parseFeedResilient(parser, 'ocheverse');
     ocheverseItems = ocheverseFeed.items.map(item => mapFeedItem(item, 'ocheverse'));
+    ocheverseOk = ocheverseItems.length > 0;
   } catch (e) {
-    console.warn("[RSS] Ocheverse feed unavailable at build time (will load at runtime):", e.message);
+    console.warn("[RSS] Ocheverse feed unavailable:", e.message);
   }
 
   try {
-    const bpurFeed = await parser.parseURL(FEEDS.bpur);
+    const bpurFeed = await parseFeedResilient(parser, 'bpur');
     bpurItems = bpurFeed.items.map(item => mapFeedItem(item, 'bpur'));
+    bpurOk = bpurItems.length > 0;
   } catch (e) {
-    console.warn("[RSS] BPUR feed unavailable at build time (will load at runtime):", e.message);
+    console.warn("[RSS] BPUR feed unavailable:", e.message);
   }
+
+  // If either feed came back empty (usually a transient 429 from the proxy),
+  // shorten ISR so we self-heal in ~1 min instead of caching an empty page for an hour.
+  const revalidate = ocheverseOk && bpurOk ? 3600 : 60;
 
   return {
     props: {
       ocheversePosts: ocheverseItems,
       bpurPosts: bpurItems,
     },
-    revalidate: 3600
+    revalidate,
   };
 }
 

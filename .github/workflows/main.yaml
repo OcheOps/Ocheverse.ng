@@ -32,8 +32,13 @@ jobs:
             secret/data/ocheverse/web SPOTIFY_REFRESH_TOKEN ;
             secret/data/ocheverse/web GITHUB_TOKEN
 
+      # network=host so the buildkit container inherits /etc/hosts on Contabo
+      # (registry.ocheverse.ng pinned to the homelab's Tailscale IP). Without
+      # this, buildkit uses its own DNS resolver and hits public CF edge IPs.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
       - name: Login to Home Registry (over Tailscale)
         uses: docker/login-action@v3

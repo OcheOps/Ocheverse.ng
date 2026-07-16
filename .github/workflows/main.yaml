@@ -35,21 +35,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Home Registry
+      - name: Login to Home Registry (LAN)
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_HOST }}
+          registry: ${{ secrets.REGISTRY_HOST }}:5000
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
+      # Push over LAN (:5000, insecure HTTP) to bypass Cloudflare's 100s edge
+      # timeout on large-blob uploads. The registry backend is the same, so
+      # Contabo can still pull via the public :443 endpoint using the standard
+      # ${REGISTRY_HOST}/ocheverse:latest tag path.
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
-            ${{ secrets.REGISTRY_HOST }}/ocheverse:${{ github.sha }}
+            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:latest
+            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ env.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
             RSS_PROXY_URL=${{ env.RSS_PROXY_URL }}

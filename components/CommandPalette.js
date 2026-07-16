@@ -63,7 +63,7 @@ export default function CommandPalette() {
                     <Command.Group heading="Pages" className="text-xs font-bold text-gray-400 dark:text-gray-500 px-2 py-1 mb-1">
                         <Item onSelect={() => runCommand(() => router.push('/'))} icon="🏠">Home</Item>
                         <Item onSelect={() => runCommand(() => router.push('/blog'))} icon="✍️">Blog</Item>
-                        <Item onSelect={() => runCommand(() => router.push('/learn'))} icon="🎓">Learn</Item>
+                        {/* <Item onSelect={() => runCommand(() => router.push('/learn'))} icon="🎓">Learn</Item> */}
                         <Item onSelect={() => runCommand(() => router.push('/now'))} icon="⚡">Now</Item>
                         <Item onSelect={() => runCommand(() => router.push('/music'))} icon="🎵">Music</Item>
                         <Item onSelect={() => runCommand(() => router.push('/stack'))} icon="🛠️">Tech Stack</Item>

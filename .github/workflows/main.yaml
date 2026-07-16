@@ -10,7 +10,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: [self-hosted, homelab]
+    runs-on: [self-hosted, contabo]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -35,25 +35,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Home Registry (LAN)
+      - name: Login to Home Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_HOST }}:5000
+          registry: ${{ secrets.REGISTRY_HOST }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      # Push over LAN (:5000, insecure HTTP) to bypass Cloudflare's 100s edge
-      # timeout on large-blob uploads. The registry backend is the same, so
-      # Contabo can still pull via the public :443 endpoint using the standard
-      # ${REGISTRY_HOST}/ocheverse:latest tag path.
+      # Build on Contabo (fast, datacenter uplink) and push to registry.ocheverse.ng
+      # via the public CF-proxied endpoint. Contabo's bandwidth fits comfortably
+      # under CF's ~100s edge timeout on blob uploads. The :sha tag stays around
+      # for rollbacks (`docker run ... registry.ocheverse.ng/ocheverse:<sha>`).
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:latest
-            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:${{ github.sha }}
+            ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
+            ${{ secrets.REGISTRY_HOST }}/ocheverse:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ env.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
             RSS_PROXY_URL=${{ env.RSS_PROXY_URL }}
@@ -62,7 +62,7 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: [self-hosted, homelab]
+    runs-on: [self-hosted, contabo]
     steps:
       - name: Import runtime secrets from Vault
         uses: hashicorp/vault-action@v3
@@ -80,58 +80,55 @@ jobs:
             secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_HOST ;
             secret/data/ocheverse/web NEXT_PUBLIC_REMARK42_SITE_ID
 
-      - name: Deploy to Contabo via SSH (pull-only)
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          command_timeout: 30m
-          envs: SPOTIFY_CLIENT_ID,SPOTIFY_CLIENT_SECRET,SPOTIFY_REFRESH_TOKEN,GITHUB_TOKEN,RSS_PROXY_URL,NEXT_PUBLIC_REMARK42_HOST,NEXT_PUBLIC_REMARK42_SITE_ID
-          script: |
-            set -euo pipefail
+      # Runner is on Contabo (the deploy target). Deploy runs local docker
+      # commands directly — no SSH hop needed.
+      - name: Deploy (local docker)
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          set -euo pipefail
 
-            REGISTRY="${{ secrets.REGISTRY_HOST }}"
-            IMAGE="${REGISTRY}/ocheverse:latest"
-            DOMAIN="ocheverse.ng"
-            NETWORK="coolify"
+          IMAGE="${REGISTRY_HOST}/ocheverse:latest"
+          DOMAIN="ocheverse.ng"
+          NETWORK="coolify"
 
-            echo "Logging into registry..."
-            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "$REGISTRY" -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+          echo "Logging into registry..."
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_HOST" -u "$REGISTRY_USERNAME" --password-stdin
 
-            echo "Pulling image: $IMAGE"
-            docker pull "$IMAGE"
+          echo "Pulling image: $IMAGE"
+          docker pull "$IMAGE"
 
-            echo "Restarting container..."
-            docker rm -f ocheverse || true
+          echo "Restarting container..."
+          docker rm -f ocheverse || true
 
-            docker run -d \
-              --name ocheverse \
-              --restart unless-stopped \
-              --network "$NETWORK" \
-              -e SPOTIFY_CLIENT_ID="$SPOTIFY_CLIENT_ID" \
-              -e SPOTIFY_CLIENT_SECRET="$SPOTIFY_CLIENT_SECRET" \
-              -e SPOTIFY_REFRESH_TOKEN="$SPOTIFY_REFRESH_TOKEN" \
-              -e GITHUB_TOKEN="$GITHUB_TOKEN" \
-              -e RSS_PROXY_URL="$RSS_PROXY_URL" \
-              -e NEXT_PUBLIC_REMARK42_HOST="$NEXT_PUBLIC_REMARK42_HOST" \
-              -e NEXT_PUBLIC_REMARK42_SITE_ID="$NEXT_PUBLIC_REMARK42_SITE_ID" \
-              -v ocheverse-data:/app/.data \
-              --label "traefik.enable=true" \
-              --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
-              --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
-              --label "traefik.http.routers.ocheverse-http.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
-              --label "traefik.http.routers.ocheverse-http.entrypoints=http" \
-              --label "traefik.http.routers.ocheverse-http.middlewares=redirect-to-https" \
-              --label "traefik.http.routers.ocheverse-https.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
-              --label "traefik.http.routers.ocheverse-https.entrypoints=https" \
-              --label "traefik.http.routers.ocheverse-https.tls=true" \
-              --label "traefik.http.routers.ocheverse-https.tls.certresolver=letsencrypt" \
-              "$IMAGE"
+          docker run -d \
+            --name ocheverse \
+            --restart unless-stopped \
+            --network "$NETWORK" \
+            -e SPOTIFY_CLIENT_ID="$SPOTIFY_CLIENT_ID" \
+            -e SPOTIFY_CLIENT_SECRET="$SPOTIFY_CLIENT_SECRET" \
+            -e SPOTIFY_REFRESH_TOKEN="$SPOTIFY_REFRESH_TOKEN" \
+            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -e RSS_PROXY_URL="$RSS_PROXY_URL" \
+            -e NEXT_PUBLIC_REMARK42_HOST="$NEXT_PUBLIC_REMARK42_HOST" \
+            -e NEXT_PUBLIC_REMARK42_SITE_ID="$NEXT_PUBLIC_REMARK42_SITE_ID" \
+            -v ocheverse-data:/app/.data \
+            --label "traefik.enable=true" \
+            --label "traefik.http.services.ocheverse.loadbalancer.server.port=6065" \
+            --label "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https" \
+            --label "traefik.http.routers.ocheverse-http.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+            --label "traefik.http.routers.ocheverse-http.entrypoints=http" \
+            --label "traefik.http.routers.ocheverse-http.middlewares=redirect-to-https" \
+            --label "traefik.http.routers.ocheverse-https.rule=Host(\`${DOMAIN}\`) || Host(\`www.${DOMAIN}\`)" \
+            --label "traefik.http.routers.ocheverse-https.entrypoints=https" \
+            --label "traefik.http.routers.ocheverse-https.tls=true" \
+            --label "traefik.http.routers.ocheverse-https.tls.certresolver=letsencrypt" \
+            "$IMAGE"
 
-            echo "Health check (public HTTPS):"
-            sleep 5
-            curl -kfsS "https://${DOMAIN}" >/dev/null && echo "✅ HTTPS OK" || echo "⚠️ HTTPS failed"
+          echo "Health check (public HTTPS):"
+          sleep 5
+          curl -kfsS "https://${DOMAIN}" >/dev/null && echo "✅ HTTPS OK" || echo "⚠️ HTTPS failed"
 
-            echo "✅ Deployment completed successfully."
+          echo "✅ Deployment completed successfully."

@@ -64,6 +64,11 @@ jobs:
           tags: |
             ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:latest
             ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:${{ github.sha }}
+          # Reuse layers from the previous :latest push and embed inline cache
+          # metadata into this build so the next run can skip unchanged layers.
+          # Only new layers ship over Tailscale; base image + node_modules stay put.
+          cache-from: type=registry,ref=${{ secrets.REGISTRY_HOST }}:5000/ocheverse:latest
+          cache-to: type=inline
           build-args: |
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ env.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
             RSS_PROXY_URL=${{ env.RSS_PROXY_URL }}

@@ -35,25 +35,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Home Registry
+      - name: Login to Home Registry (over Tailscale)
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_HOST }}
+          registry: ${{ secrets.REGISTRY_HOST }}:5000
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      # Build on Contabo (fast, datacenter uplink) and push to registry.ocheverse.ng
-      # via the public CF-proxied endpoint. Contabo's bandwidth fits comfortably
-      # under CF's ~100s edge timeout on blob uploads. The :sha tag stays around
-      # for rollbacks (`docker run ... registry.ocheverse.ng/ocheverse:<sha>`).
+      # Push to homelab registry over Tailscale (/etc/hosts pins the FQDN to the
+      # homelab's Tailscale IP; docker daemon treats :5000 as insecure). Traffic
+      # skips Cloudflare's ~100s edge cutoff that was 524'ing large blob PUTs.
+      # The :sha tag stays around for rollbacks — from Contabo, pull the same
+      # registry.ocheverse.ng:5000/ocheverse:<sha> tag.
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
-            ${{ secrets.REGISTRY_HOST }}/ocheverse:latest
-            ${{ secrets.REGISTRY_HOST }}/ocheverse:${{ github.sha }}
+            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:latest
+            ${{ secrets.REGISTRY_HOST }}:5000/ocheverse:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ env.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
             RSS_PROXY_URL=${{ env.RSS_PROXY_URL }}
@@ -90,12 +91,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          IMAGE="${REGISTRY_HOST}/ocheverse:latest"
+          IMAGE="${REGISTRY_HOST}:5000/ocheverse:latest"
           DOMAIN="ocheverse.ng"
           NETWORK="coolify"
 
-          echo "Logging into registry..."
-          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_HOST" -u "$REGISTRY_USERNAME" --password-stdin
+          echo "Logging into registry (Tailscale)..."
+          echo "$REGISTRY_PASSWORD" | docker login "${REGISTRY_HOST}:5000" -u "$REGISTRY_USERNAME" --password-stdin
 
           echo "Pulling image: $IMAGE"
           docker pull "$IMAGE"

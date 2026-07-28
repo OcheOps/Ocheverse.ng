@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { createParser, FEEDS } from "../../../lib/rssParser";
+import { createParser, parseFeedResilient } from "../../../lib/rssParser";
 import Link from "next/link";
 import * as cheerio from 'cheerio';
 import slugify from 'slugify';
@@ -16,13 +16,13 @@ export async function getStaticPaths() {
   let paths = [];
 
   const feeds = [
-    { source: "ocheverse", url: FEEDS.ocheverse },
-    { source: "bpur", url: FEEDS.bpur }
+    { source: "ocheverse" },
+    { source: "bpur" }
   ];
 
   for (const feed of feeds) {
     try {
-      const parsedFeed = await parser.parseURL(feed.url);
+      const parsedFeed = await parseFeedResilient(parser, feed.source);
       const items = parsedFeed.items;
       items.forEach(item => {
         // extract slug from link, e.g., https://ocheverse.substack.com/p/the-slug
@@ -47,10 +47,8 @@ export async function getStaticProps({ params }) {
   const { source, slug } = params;
   const parser = createParser();
   
-  const feedUrl = source === 'ocheverse' ? FEEDS.ocheverse : FEEDS.bpur;
-
   try {
-    const feed = await parser.parseURL(feedUrl);
+    const feed = await parseFeedResilient(parser, source);
     
     // Find item with same slug in link
     const item = feed.items.find(i => {

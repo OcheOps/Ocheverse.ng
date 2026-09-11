@@ -2,24 +2,165 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Editorial design tokens — used by the redesigned homepage and
+   any surface that opts in with `editorial-surface`.
+   ============================================================ */
+:root {
+  --paper: #EFECDB;
+  --paper-2: #E5E1CE;
+  --ink: #0F1D1A;
+  --ink-soft: #38423E;
+  --dust: #B8B4A3;
+  --rule: rgba(15, 29, 26, 0.14);
+  --rule-strong: rgba(15, 29, 26, 0.35);
+
+  --blue: #1D3EE0;
+  --blue-ink: #0F2AA8;
+  --green: #1E5F3D;
+  --green-live: #23A56A;
+  --red: #C82A28;
+
+  --grain: 0.045;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1613;
+    --paper-2: #17201C;
+    --ink: #EFECDB;
+    --ink-soft: #C1BEAE;
+    --dust: #6C6A5D;
+    --rule: rgba(239, 236, 219, 0.14);
+    --rule-strong: rgba(239, 236, 219, 0.35);
+
+    --blue: #6883F0;
+    --blue-ink: #A9B7F5;
+    --green: #4FA277;
+    --green-live: #6BD69B;
+    --red: #E45551;
+    --grain: 0.07;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1613;
+  --paper-2: #17201C;
+  --ink: #EFECDB;
+  --ink-soft: #C1BEAE;
+  --dust: #6C6A5D;
+  --rule: rgba(239, 236, 219, 0.14);
+  --rule-strong: rgba(239, 236, 219, 0.35);
+  --blue: #6883F0;
+  --blue-ink: #A9B7F5;
+  --green: #4FA277;
+  --green-live: #6BD69B;
+  --red: #E45551;
+  --grain: 0.07;
+}
+
 body {
   @apply bg-white dark:bg-gray-900 text-black dark:text-white;
 }
 
+/* Any page/section that opts in gets the paper look. */
+.editorial-surface {
+  background: var(--paper);
+  color: var(--ink);
+  font-feature-settings: "kern", "liga", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paper grain overlay */
+.editorial-surface::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: var(--grain);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.11 0 0 0 0 0.10 0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .editorial-surface::before { mix-blend-mode: screen; }
+}
+:root[data-theme="dark"] .editorial-surface::before { mix-blend-mode: screen; }
+
+/* Editorial helpers */
+.ed-kicker {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Mono", "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ed-headline {
+  font-family: Georgia, "Iowan Old Style", "Hoefler Text", "Palatino Linotype", "Book Antiqua", serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.text-wrap-balance { text-wrap: balance; }
+
+/* Live status pulse */
+@keyframes ed-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--green-live) 55%, transparent); }
+  70% { box-shadow: 0 0 0 10px color-mix(in oklab, var(--green-live) 0%, transparent); }
+}
+.ed-live-dot {
+  width: 8px; height: 8px;
+  background: var(--green-live);
+  border-radius: 50%;
+  display: inline-block;
+  animation: ed-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hero word wiggle */
+.ed-hero-headline .word {
+  display: inline-block;
+  transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease;
+  will-change: transform;
+}
+.ed-hero-headline:hover .word:nth-child(3n+1) { transform: translateY(-4px) rotate(-1.4deg); }
+.ed-hero-headline:hover .word:nth-child(3n+2) { transform: translateY(4px) rotate(1deg); }
+.ed-hero-headline:hover .word:nth-child(3n+3) { transform: translateY(-2px) rotate(0.6deg); }
+@media (prefers-reduced-motion: reduce) {
+  .ed-hero-headline:hover .word { transform: none !important; }
+}
+
+/* Post title draw-in underline */
+.ed-title-link {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-size: 0 1.5px;
+  background-repeat: no-repeat;
+  transition: background-size 380ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms;
+}
+.ed-post:hover .ed-title-link { background-size: 100% 1.5px; }
+
+/* Marquee */
+@keyframes ed-crawl { to { transform: translateX(-50%); } }
+.ed-marquee-track {
+  animation: ed-crawl 55s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ed-marquee-track { animation: none; }
+}
+
+/* Existing floating bg utilities (kept for non-editorial pages) */
 @keyframes float-slow {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(30px, -30px); }
 }
-
 @keyframes float-slow-reverse {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(-30px, 20px); }
 }
-
 .animate-float-slow {
   animation: float-slow 12s ease-in-out infinite;
 }
-
 .animate-float-slow-reverse {
   animation: float-slow-reverse 15s ease-in-out infinite;
 }

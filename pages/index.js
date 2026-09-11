@@ -1,83 +1,144 @@
 import Head from "next/head";
 import Link from "next/link";
-import Image from "next/image";
-import { useState, useEffect } from "react";
+import { createParser, parseFeedResilient } from "../lib/rssParser";
+import * as cheerio from "cheerio";
 
-// Custom Hook for Typed Text Effect
-const useTypewriter = (words, speed = 100, deletingSpeed = 50, pause = 1500) => {
-  const [index, setIndex] = useState(0);
-  const [subIndex, setSubIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [blink, setBlink] = useState(true);
+// ------- data helpers -------
+const stripToText = (html) =>
+  cheerio.load(html || "").root().text().replace(/\s+/g, " ").trim();
 
-  // Blinking cursor
-  useEffect(() => {
-    const timeout2 = setTimeout(() => {
-      setBlink((prev) => !prev);
-    }, 500);
-    return () => clearTimeout(timeout2);
-  }, [blink]);
+const readingTime = (html) =>
+  Math.max(1, Math.ceil(stripToText(html).split(/\s+/).length / 200));
 
-  useEffect(() => {
-    if (index >= words.length) {
-      setIndex(0); // Reset to start
-      return;
-    }
-
-    const currentWord = words[index];
-
-    if (isDeleting) {
-      if (subIndex === 0) {
-        setIsDeleting(false);
-        setIndex((prev) => (prev + 1) % words.length);
-        return;
-      }
-
-      const timeout = setTimeout(() => {
-        setSubIndex((prev) => prev - 1);
-      }, deletingSpeed);
-      return () => clearTimeout(timeout);
-    } else {
-      if (subIndex === currentWord.length) {
-        const timeout = setTimeout(() => {
-          setIsDeleting(true);
-        }, pause);
-        return () => clearTimeout(timeout);
-      }
-
-      const timeout = setTimeout(() => {
-        setSubIndex((prev) => prev + 1);
-      }, speed);
-      return () => clearTimeout(timeout);
-    }
-  }, [subIndex, index, isDeleting, words, speed, deletingSpeed, pause]);
-
-  return `${words[index].substring(0, subIndex)}${blink ? "|" : " "}`;
+const slugFromLink = (link) => {
+  let s = (link || "").split("/").pop() || "";
+  return s.includes("?") ? s.split("?")[0] : s;
 };
 
-const ROLES = [
-  "DevOps Engineer",
-  "Chaos Engineer",
-  "Cloud Native Local",
-  "Infrastructure Storyteller",
-  "Liverpool FC Fan",
-  "Anything my babe needs me to be"
-];
+const mapPost = (item, source) => {
+  const html = item["content:encoded"] || item.content || "";
+  const plain = stripToText(html);
+  return {
+    title: item.title || "",
+    slug: slugFromLink(item.link),
+    source,
+    isoDate: item.isoDate || (item.pubDate ? new Date(item.pubDate).toISOString() : null),
+    excerpt: plain.length > 155 ? plain.slice(0, 155) + "…" : plain,
+    readingTime: readingTime(html),
+  };
+};
 
-export default function Home() {
-  const typedText = useTypewriter(ROLES);
+export async function getStaticProps() {
+  const parser = createParser();
+  let ocheversePosts = [];
+  let bpurPosts = [];
+  let ok = { ocheverse: false, bpur: false };
+
+  try {
+    const feed = await parseFeedResilient(parser, "ocheverse");
+    ocheversePosts = feed.items.map((i) => mapPost(i, "ocheverse"));
+    ok.ocheverse = ocheversePosts.length > 0;
+  } catch (e) {
+    console.warn("[home] Ocheverse feed unavailable:", e.message);
+  }
+  try {
+    const feed = await parseFeedResilient(parser, "bpur");
+    bpurPosts = feed.items.map((i) => mapPost(i, "bpur"));
+    ok.bpur = bpurPosts.length > 0;
+  } catch (e) {
+    console.warn("[home] BPUR feed unavailable:", e.message);
+  }
+
+  const featured = ocheversePosts[0] || bpurPosts[0] || null;
+  const ocheverseLatest = ocheversePosts.slice(featured?.source === "ocheverse" ? 1 : 0, 4);
+  const bpurLatest = bpurPosts.slice(featured?.source === "bpur" ? 1 : 0, 4);
+
+  const marquee = [...ocheversePosts.slice(0, 3), ...bpurPosts.slice(0, 3)]
+    .map((p) => p.title)
+    .filter(Boolean);
+
+  return {
+    props: {
+      featured,
+      ocheverseLatest,
+      bpurLatest,
+      totals: { ocheverse: ocheversePosts.length, bpur: bpurPosts.length },
+      marquee,
+    },
+    revalidate: ok.ocheverse && ok.bpur ? 3600 : 60,
+  };
+}
+
+// ------- date helpers -------
+const shortDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yy = String(d.getUTCFullYear()).slice(-2);
+  return `${dd}·${mm}·${yy}`;
+};
+const longDate = (iso) => {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+};
+const issueNumber = (total) => String(40 + (total || 0)).padStart(3, "0");
+
+// ------- word splitter for hero wiggle -------
+const splitWords = (text) =>
+  text.split(/(\s+)/).map((chunk, i) =>
+    /^\s+$/.test(chunk) ? (
+      <span key={i}> </span>
+    ) : (
+      <span key={i} className="word">
+        {chunk}
+      </span>
+    )
+  );
+
+export default function Home({ featured, ocheverseLatest, bpurLatest, totals, marquee }) {
+  const totalPosts = (totals?.ocheverse || 0) + (totals?.bpur || 0);
+  const issue = issueNumber(totalPosts);
+  const today = new Date();
+  const todayShort = today.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+  const featuredHref = featured
+    ? `/blog/${featured.source}/${featured.slug}`
+    : "/blog";
+
+  const marqueeItems =
+    marquee && marquee.length
+      ? marquee
+      : [
+          "observability is harder than they told you",
+          "the system was up · the system was lying",
+          "adventures in homelabbing · DNS · AdGuard",
+          "notes on ambition, from Lagos",
+        ];
 
   return (
     <>
       <Head>
-        <title>David Gideon – DevOps Engineer & Solutions Architect | Ocheverse</title>
-        <meta name="description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions at Ocheverse." />
-        <meta property="og:title" content="David Gideon – DevOps Engineer & Solutions Architect" />
-        <meta property="og:description" content="DevOps engineer & infrastructure storyteller. Explore my projects, blog posts, and automation obsessions." />
+        <title>Ocheverse — David Gideon</title>
+        <meta
+          name="description"
+          content="Two publications, one author. Engineering war stories from Ocheverse and long-form essays on BPUR — by David Gideon, from Lagos."
+        />
+        <meta property="og:title" content="Ocheverse — David Gideon" />
+        <meta
+          property="og:description"
+          content="Two publications, one author. Engineering war stories from Ocheverse and long-form essays on BPUR."
+        />
         <meta property="og:url" content="https://ocheverse.ng" />
-        <meta property="og:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
+        <meta
+          property="og:image"
+          content="https://ocheverse.ng/api/og?title=Ocheverse&category=David%20Gideon"
+        />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=DevOps%20Engineer%20%26%20Solutions%20Architect&category=Ocheverse" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -89,190 +150,430 @@ export default function Home() {
               url: "https://ocheverse.ng",
               image: "https://ocheverse.ng/profile.jpg",
               jobTitle: "DevOps Engineer & Solutions Architect",
-              description: "DevOps engineer & infrastructure storyteller.",
+              description:
+                "DevOps engineer & infrastructure storyteller. Two publications, one author.",
               sameAs: [
                 "https://github.com/OcheOps",
                 "https://www.linkedin.com/in/gideonodavid/",
                 "https://ocheverse.substack.com",
                 "https://bpur.substack.com",
               ],
-              knowsAbout: [
-                "DevOps",
-                "Kubernetes",
-                "Cloud Infrastructure",
-                "Site Reliability Engineering",
-                "Automation",
-              ],
             }),
           }}
         />
       </Head>
 
-      {/* Background Gradient Mesh (Fixed) */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-400/20 rounded-full blur-[100px] animate-float-slow" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] animate-float-slow-reverse" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-green-400/10 rounded-full blur-[120px] animate-pulse" />
-      </div>
+      <main className="editorial-surface min-h-screen">
+        <div className="relative z-[3] max-w-[1240px] mx-auto px-5 sm:px-10 pt-10">
+          {/* ============ MASTHEAD ============ */}
+          <header className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-6 pb-3 border-b border-rule-strong font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">
+            <div className="flex gap-5 flex-wrap">
+              <span>
+                Est. <b className="text-ink font-medium">2024</b>
+              </span>
+              <span>
+                Issue №<b className="text-ink font-medium">{issue}</b>
+              </span>
+              <span>
+                Lagos · <b className="text-ink font-medium">{todayShort}</b>
+              </span>
+            </div>
+            <Link
+              href="/"
+              className="font-editorial italic text-[26px] text-ink normal-case tracking-tight leading-none pt-0.5 flex items-center gap-2"
+            >
+              <span className="inline-block w-2 h-2 rounded-full bg-ed-red" aria-hidden="true" />
+              Ocheverse
+            </Link>
+            <div className="hidden sm:flex justify-end gap-4">
+              <a href="/blog" className="hover:text-ed-blue transition-colors">Archive</a>
+              <a href="/now" className="hover:text-ed-blue transition-colors">Now</a>
+              <a href="/stack" className="hover:text-ed-blue transition-colors">Stack</a>
+              <a href="/guestbook" className="hover:text-ed-blue transition-colors">Guestbook</a>
+            </div>
+          </header>
 
-      <main className="text-gray-900 dark:text-gray-100 min-h-screen pt-24">
-
-        {/* HERO SECTION */}
-        <section className="min-h-[80vh] flex flex-col justify-center items-center text-center px-4 relative">
-          <div className="mb-8 relative w-32 h-32 md:w-40 md:h-40">
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full animate-pulse blur-lg opacity-50"></div>
-            <Image
-              src="/profile.jpg"
-              alt="David Gideon"
-              fill
-              className="rounded-full object-cover border-4 border-white dark:border-gray-900 relative z-10 shadow-2xl"
-            />
+          {/* ============ SUB-STRIP ============ */}
+          <div className="flex justify-between items-center py-2 border-b border-rule font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
+            <div>Two publications · One author · Weekly-ish</div>
+            <div className="hidden md:inline-flex items-center gap-2 text-ink">
+              <span className="ed-live-dot" aria-hidden="true" />
+              Deploying · self-hosted runner
+            </div>
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">
-            David Gideon
-          </h1>
+          {/* ============ HERO ============ */}
+          <section
+            className="relative pt-16 sm:pt-20 pb-20 sm:pb-24 grid gap-y-7 gap-x-10 lg:grid-cols-[1fr_5fr_1fr] lg:[grid-template-areas:'kicker_headline_aside''kicker_headline_aside''meta_headline_cta']"
+            aria-labelledby="featured-title"
+          >
+            {/* floating issue number */}
+            <div
+              aria-hidden="true"
+              className="hidden lg:block absolute top-10 right-[-4px] font-editorial italic pointer-events-none select-none"
+              style={{
+                fontSize: "clamp(80px, 12vw, 190px)",
+                lineHeight: 0.85,
+                letterSpacing: "-0.05em",
+                color: "transparent",
+                WebkitTextStroke: "1.2px var(--rule-strong)",
+              }}
+            >
+              {issue[0]}
+              <span style={{ color: "var(--red)", WebkitTextStroke: 0 }}>{issue[1]}</span>
+              {issue[2]}
+            </div>
 
-          <div className="h-8 text-xl md:text-2xl font-mono text-blue-600 dark:text-blue-400 mb-8 font-semibold uppercase tracking-widest">
-            {typedText}
-          </div>
+            {/* kicker */}
+            <div className="lg:[grid-area:kicker] font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft leading-normal">
+              <div className="w-11 h-0.5 bg-ink mb-4" />
+              <b className="block text-ed-red font-semibold mb-1.5 tracking-[0.18em]">
+                Featured essay
+              </b>
+              From the desk<br />
+              {featured?.source === "bpur" ? "BPUR" : "Ocheverse"}
+              {featured?.isoDate ? (
+                <>
+                  ,<br />
+                  Filed {longDate(featured.isoDate)}
+                </>
+              ) : null}
+            </div>
 
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mx-auto mb-12 leading-relaxed">
-            Building for the Cloud, automating the chaos, and finding stillness in the terminal.
-          </p>
+            {/* headline */}
+            <h1
+              id="featured-title"
+              className="ed-headline ed-hero-headline lg:[grid-area:headline] m-0 cursor-default"
+              style={{
+                fontSize: "clamp(46px, 9.2vw, 132px)",
+                lineHeight: 0.96,
+              }}
+            >
+              <span className="text-ed-red font-editorial not-italic">“</span>
+              {featured
+                ? splitWords(featured.title)
+                : splitWords("A field guide to shipping software that lives out here.")}
+              <span className="text-ed-red font-editorial not-italic">”</span>
+            </h1>
 
-          <div className="flex flex-wrap justify-center gap-4 mb-16">
-            <a href="#projects" className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform">
-              See the Work
-            </a>
-            <a href="mailto:ocheworks@gmail.com" className="bg-transparent text-gray-900 dark:text-white font-bold py-3 px-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              Let's Talk
-            </a>
-          </div>
-
-          {/* Mini Terminal */}
-          <div className="w-full max-w-lg mx-auto">
-            <div className="bg-gray-900 dark:bg-black rounded-xl shadow-2xl overflow-hidden border border-gray-700">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 dark:bg-gray-900 border-b border-gray-700">
-                <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                <span className="ml-2 text-xs text-gray-400 font-mono">oche@ocheverse:~</span>
+            {/* meta */}
+            <div className="lg:[grid-area:meta] lg:self-end font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft space-y-1">
+              <div>
+                <b className="text-ink font-medium">David Gideon</b>
               </div>
-              <div className="p-4 font-mono text-sm text-green-400 space-y-1.5">
-                <p><span className="text-blue-400">$</span> whoami</p>
-                <p className="text-gray-300">devops-engineer && infrastructure-storyteller</p>
-                <p><span className="text-blue-400">$</span> kubectl get pods -n passion</p>
-                <p className="text-gray-300">NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;READY&nbsp;&nbsp;&nbsp;STATUS</p>
-                <p className="text-gray-300">cloud-engineering&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
-                <p className="text-gray-300">writing-blog&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
-                <p className="text-gray-300">liverpool-fc&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">Running</span></p>
-                <p className="text-gray-300">touching-grass&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0/1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-yellow-400">Pending</span></p>
-                <p><span className="text-blue-400">$</span> <span className="animate-pulse">_</span></p>
+              <div>
+                {featured?.source === "bpur" ? "BPUR" : "Ocheverse"}
+                {featured?.readingTime ? ` · ${featured.readingTime} min read` : ""}
+              </div>
+              {featured?.isoDate && (
+                <div>
+                  Published{" "}
+                  <b className="text-ink font-medium">{shortDate(featured.isoDate)}</b>
+                </div>
+              )}
+            </div>
+
+            {/* aside */}
+            <aside className="lg:[grid-area:aside] flex flex-col gap-4 pt-3">
+              <div
+                className="border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed"
+                style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
+              >
+                <div className="flex items-center gap-2 text-ink font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-dashed border-rule-strong">
+                  <span className="ed-live-dot" aria-hidden="true" />
+                  Shipping now
+                </div>
+                <div className="text-ink-soft normal-case tracking-normal">
+                  <strong className="text-ink font-semibold">rss.ocheverse.ng</strong> serves
+                  stale-while-substack-rate-limits. Push over Tailscale to homelab.
+                </div>
+              </div>
+              <div
+                className="border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed"
+                style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
+              >
+                <div className="flex items-center gap-2 text-ed-red font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-solid border-rule-strong">
+                  <span className="inline-block w-2 h-2 rounded-full bg-ed-red" aria-hidden="true" />
+                  Currently reading
+                </div>
+                <div className="text-ink-soft normal-case tracking-normal">
+                  <span style={{ color: "var(--blue)" }}>
+                    <em className="not-italic">Working in Public</em>
+                  </span>{" "}
+                  — Nadia Eghbal. Chapter 4.
+                </div>
+              </div>
+            </aside>
+
+            {/* CTA */}
+            <Link
+              href={featuredHref}
+              className="lg:[grid-area:cta] lg:justify-self-end inline-flex items-center gap-2.5 font-mono text-[11.5px] uppercase tracking-[0.14em] text-paper bg-ed-blue px-6 py-3.5 rounded-full hover:-translate-y-0.5 hover:bg-ed-blue-ink transition-all whitespace-nowrap w-fit"
+            >
+              Read the essay
+              <span aria-hidden="true">→</span>
+            </Link>
+          </section>
+
+          {/* ============ MARQUEE BAND ============ */}
+          <div className="border-t border-rule-strong border-b border-rule py-3 flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft overflow-hidden">
+            <span className="font-editorial italic text-[14px] normal-case tracking-normal text-ink pr-5 mr-5 border-r border-rule-strong whitespace-nowrap">
+              In this issue —
+            </span>
+            <div
+              className="flex-1 overflow-hidden flex gap-10"
+              style={{
+                maskImage:
+                  "linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent)",
+              }}
+            >
+              <div className="ed-marquee-track flex gap-10 whitespace-nowrap">
+                {[...marqueeItems, ...marqueeItems].map((title, i) => (
+                  <span key={i}>
+                    <span className="text-ed-red">◇ </span>
+                    {title}
+                  </span>
+                ))}
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-3 text-center">
-              Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-mono">K</kbd> to search anything
+          </div>
+
+          {/* ============ SHELVES ============ */}
+          <section className="relative pt-20 sm:pt-24 pb-10 grid gap-y-16 lg:gap-x-20 lg:grid-cols-2">
+            <div
+              aria-hidden="true"
+              className="hidden lg:block absolute top-24 bottom-0 left-1/2 w-px bg-rule"
+            />
+            <Shelf
+              tone="ocheverse"
+              name="Ocheverse"
+              tag="Engineering · Weekly"
+              blurb="Main Branch Mayhem — war stories from distributed systems, DevOps, and the servers I broke on the way here."
+              posts={ocheverseLatest}
+              total={totals?.ocheverse}
+              archiveHref="/blog#ocheverse"
+            />
+            <Shelf
+              tone="bpur"
+              name="BPUR"
+              tag="Essays · When it hits"
+              blurb="Big picture, unfiltered, real. Long-form on ambition, slowness, and the meta-work behind the work."
+              posts={bpurLatest}
+              total={totals?.bpur}
+              archiveHref="/blog#bpur"
+            />
+          </section>
+
+          {/* ============ PRESS STRIP ============ */}
+          <section
+            className="mt-20 pt-10 pb-11 grid gap-6 md:grid-cols-[200px_1fr] md:gap-10"
+            style={{
+              borderTop: "3px double var(--rule-strong)",
+              borderBottom: "3px double var(--rule-strong)",
+            }}
+          >
+            <div className="font-editorial italic text-[26px] leading-none text-ink">
+              As we go
+              <br />
+              <em>to press —</em>
+              <small className="block mt-2 font-mono not-italic text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
+                Live from the homelab
+              </small>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-7">
+              <PressItem eb="Shipping" tone="deploy">
+                <em className="not-italic">Ocheverse</em> · self-hosted runner in place
+              </PressItem>
+              <PressItem eb="Reading" tone="read">
+                <em className="not-italic">Working in Public</em> · Nadia Eghbal
+              </PressItem>
+              <PressItem eb="Listening" tone="listen">
+                Sons of Kemet — <em>My Queen Is Ada Eastman</em>
+              </PressItem>
+              <PressItem eb="Broken" tone="broken">
+                Homelab uplink · <em>40 KB/s and mad about it</em>
+              </PressItem>
+              <PressItem eb="Learning" tone="read">
+                Tailscale ACLs · rewriting from scratch
+              </PressItem>
+              <PressItem eb="Playing" tone="listen">
+                <em>Balatro</em> · still trying for the Blue Deck run
+              </PressItem>
+              <PressItem eb="Open PR" tone="deploy">
+                <em>ocheverse.ng</em> · Tailscale registry
+              </PressItem>
+              <PressItem eb="Thinking" tone="read">
+                Why my CV needs a &ldquo;systems I&rsquo;ve broken&rdquo; section.
+              </PressItem>
+            </div>
+          </section>
+
+          {/* ============ TOYBOX ============ */}
+          <section className="pt-20 pb-6 grid gap-6 md:gap-10 md:grid-cols-[1fr_auto] items-end border-b border-rule">
+            <div>
+              <div className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft mb-2">
+                Also in the back pages
+              </div>
+              <p
+                className="font-editorial italic leading-[0.95] tracking-tight text-ink max-w-[20ch] text-wrap-balance"
+                style={{ fontSize: "clamp(28px, 4.4vw, 58px)" }}
+              >
+                A <em className="not-italic italic" style={{ color: "var(--blue)" }}>snake</em>, a{" "}
+                <em className="not-italic italic" style={{ color: "var(--green)" }}>2048</em>, and one{" "}
+                <em className="not-italic italic" style={{ color: "var(--red)" }}>guestbook</em>{" "}
+                nobody signs.
+              </p>
+            </div>
+            <div className="flex gap-3 items-center">
+              <ToyLink href="/game" tone="blue">🐍</ToyLink>
+              <ToyLink href="/2048" tone="green">2⁵</ToyLink>
+              <ToyLink href="/guestbook" tone="red">✍︎</ToyLink>
+            </div>
+          </section>
+
+          {/* ============ COLOPHON ============ */}
+          <footer className="py-10 flex flex-wrap justify-between items-baseline gap-6 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+            <div>
+              <div className="mb-1.5">Set in Georgia italic &amp; ui-monospace · Printed in Lagos</div>
+              <div>
+                Handmade with self-hosted runners &amp; Tailscale · No trackers ·{" "}
+                <a href="/feed.xml" className="text-ink border-b border-rule-strong hover:text-ed-blue hover:border-ed-blue">
+                  RSS
+                </a>
+              </div>
+            </div>
+            <p className="font-editorial italic text-[22px] text-ink normal-case tracking-tight m-0">
+              Signed<span className="text-ed-blue">,</span> Oche.
             </p>
-          </div>
-        </section>
-
-        {/* FEATURED PROJECTS */}
-        <section id="projects" className="py-24 px-4 max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Selected Works</h2>
-            <p className="text-gray-500 dark:text-gray-400">Open source & Infrastructure.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <ProjectCard
-              title="Passy"
-              desc="A cross-platform CLI password manager built with Go. Secure, fast, and terminal-native."
-              link="https://github.com/OcheOps/passy"
-              tags={['Go', 'CLI', 'Security']}
-            />
-            <ProjectCard
-              title="Infra Monitor-as-a-Service"
-              desc="Full-stack monitoring solution using Prometheus, Grafana, and Alertmanager with Telegram integration."
-              link="https://github.com/OcheOps/infra-monitor"
-              tags={['Prometheus', 'Grafana', 'Docker']}
-            />
-            <ProjectCard
-              title="VPN Infra"
-              desc="Automated AWS↔Azure VPN tunnel with BGP failover utilizing Terraform for Infrastructure as Code."
-              link="https://github.com/OcheOps/Site-to-site-VPN.git"
-              tags={['Terraform', 'AWS', 'Azure', 'Networking']}
-            />
-            <ProjectCard
-              title="Playlist Exporter"
-              desc="A CLI wizard to migrate your Spotify 'Liked Songs' directly to YouTube Music with high accuracy."
-              link="https://github.com/OcheOps/playlist-exporter-spotify-to-YTM.git"
-              tags={['Python', 'API', 'Automation']}
-            />
-          </div>
-        </section>
-
-        {/* FUN FACTS - Interactive Grid */}
-        <section className="py-24 bg-gray-50 dark:bg-gray-800/50">
-          <div className="max-w-5xl mx-auto px-4">
-            <h2 className="text-3xl font-bold mb-12 text-center text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-teal-500">
-              State File
-            </h2>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-              <FactCard emoji="🔮" text="Always thinking about the future" />
-              <FactCard emoji="⚽" text="Die-hard Liverpool FC Fan" />
-              <FactCard emoji="🌐" text="Curious about Distributed Systems" />
-              <FactCard emoji="✍🏽" text="Writes blogs with memes & vibes" />
-              <FactCard emoji="🤖" text="Dreams of self-healing infra" />
-              <FactCard emoji="🇳🇬" text="Building from the Terminal" />
-            </div>
-          </div>
-        </section>
-
-        {/* CONTACT CTA */}
-        <section className="py-32 text-center px-4">
-          <h2 className="text-5xl font-extrabold mb-6">Shall we?</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-10">
-            Designing systems that survive the real world.
-          </p>
-          <a href="mailto:ocheworks@gmail.com" className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 px-12 rounded-full shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
-            Say Hello 👋
-          </a>
-        </section>
-
+          </footer>
+        </div>
       </main>
     </>
   );
 }
 
-// Sub-components for cleaner code
-function ProjectCard({ title, desc, link, tags }) {
-  return (
-    <a href={link} target="_blank" className="group bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm hover:shadow-xl border border-gray-100 dark:border-gray-700 transition-all duration-300 hover:-translate-y-1 block">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-2xl font-bold group-hover:text-blue-500 transition-colors">{title}</h3>
-        <span className="text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">↗</span>
-      </div>
-      <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-        {desc}
-      </p>
-      <div className="flex gap-2 flex-wrap">
-        {tags.map(tag => (
-          <span key={tag} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-xs font-semibold rounded-full text-gray-600 dark:text-gray-300">
-            {tag}
-          </span>
-        ))}
-      </div>
-    </a>
-  );
-}
+// ---------------- Shelf ----------------
+function Shelf({ tone, name, tag, blurb, posts, total, archiveHref }) {
+  const nameColor = tone === "ocheverse" ? "var(--blue)" : "var(--red)";
+  const hoverBorder = tone === "ocheverse" ? "hover:border-ed-blue" : "hover:border-ed-red";
 
-function FactCard({ emoji, text }) {
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm text-center transform transition duration-500 hover:scale-105 border-b-4 border-transparent hover:border-green-500">
-      <span className="text-4xl block mb-3">{emoji}</span>
-      <p className="font-medium text-gray-700 dark:text-gray-200">{text}</p>
+    <div>
+      <div className="flex items-baseline justify-between gap-4 mb-8 pb-4 border-b border-rule-strong">
+        <h2
+          className="font-editorial italic font-normal m-0 leading-none tracking-tight"
+          style={{ fontSize: "40px", color: nameColor }}
+        >
+          {name}
+        </h2>
+        <span className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-soft">
+          {tag}
+        </span>
+      </div>
+      <p className="font-editorial italic text-ink-soft text-[14.5px] -mt-5 mb-8 pl-0.5">
+        {blurb}
+      </p>
+      <ol className="list-none p-0 m-0 flex flex-col">
+        {posts.length === 0 && (
+          <li className="font-mono text-[11px] text-ink-soft py-6 border-t border-rule">
+            Nothing loaded — check back in a minute.
+          </li>
+        )}
+        {posts.map((p, i) => (
+          <li key={p.slug || i}>
+            <Link
+              href={`/blog/${p.source}/${p.slug}`}
+              className={`ed-post group grid grid-cols-[34px_1fr_auto] items-baseline gap-5 py-5 border-t border-rule text-ink first:border-t-0`}
+            >
+              <span className="font-mono text-[11px] tracking-[0.1em] text-ink-soft pt-1.5">
+                {String(i + 1).padStart(2, "0")}/
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
+                  <em className="not-italic font-semibold" style={{ color: nameColor }}>
+                    {tone === "ocheverse" ? "Ocheverse" : "Essay"}
+                  </em>{" "}
+                  · {p.readingTime} min · {shortDate(p.isoDate)}
+                </span>
+                <span
+                  className="ed-title-link font-editorial italic text-[20px] leading-[1.2] text-ink text-wrap-balance max-w-[34ch]"
+                  style={{
+                    color: "var(--ink)",
+                  }}
+                >
+                  {p.title}
+                </span>
+              </div>
+              <span className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-soft pt-2 whitespace-nowrap">
+                {p.readingTime}′
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+      <div className="flex justify-between items-center mt-8 pt-5 border-t border-rule-strong font-mono text-[11px] tracking-[0.12em] uppercase text-ink-soft">
+        <span>
+          {total || posts.length} posts in the archive
+        </span>
+        <Link
+          href={archiveHref}
+          className={`text-ink pb-0.5 border-b-[1.5px] border-transparent transition-colors ${hoverBorder}`}
+        >
+          All {name} →
+        </Link>
+      </div>
     </div>
   );
 }
 
+// ---------------- PressItem ----------------
+function PressItem({ eb, tone, children }) {
+  const dotStyle = (() => {
+    switch (tone) {
+      case "deploy":
+        return {
+          background: "var(--green-live)",
+          boxShadow: "0 0 0 3px color-mix(in oklab, var(--green-live) 25%, transparent)",
+          animation: "ed-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        };
+      case "read":
+        return { background: "var(--blue)" };
+      case "listen":
+        return { background: "var(--red)" };
+      case "broken":
+        return {
+          background: "var(--red)",
+          boxShadow: "0 0 0 3px color-mix(in oklab, var(--red) 25%, transparent)",
+        };
+      default:
+        return { background: "var(--dust)" };
+    }
+  })();
+  return (
+    <div className="flex flex-col gap-1.5 font-editorial text-[14.5px] leading-[1.4] text-ink">
+      <span className="font-mono not-italic text-[10px] tracking-[0.16em] uppercase text-ink-soft flex items-center gap-2">
+        <span className="inline-block w-2 h-2 rounded-full" style={dotStyle} aria-hidden="true" />
+        {eb}
+      </span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+// ---------------- ToyLink ----------------
+function ToyLink({ href, tone, children }) {
+  const color =
+    tone === "blue" ? "var(--blue)" : tone === "green" ? "var(--green)" : "var(--red)";
+  return (
+    <Link
+      href={href}
+      className="grid place-items-center w-[74px] h-[74px] border-[1.5px] border-rule-strong bg-paper font-editorial italic text-[30px] hover:-translate-y-1 hover:-rotate-3 transition-transform"
+      style={{
+        color,
+        boxShadow: "4px 4px 0 var(--rule-strong)",
+      }}
+    >
+      {children}
+    </Link>
+  );
+}

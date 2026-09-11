@@ -1,286 +1,403 @@
 import Head from "next/head";
-import { createParser, parseFeedResilient } from "../../lib/rssParser";
 import Link from "next/link";
-import { useState } from "react";
-import * as cheerio from 'cheerio';
+import { useState, useMemo } from "react";
+import { createParser, parseFeedResilient } from "../../lib/rssParser";
+import * as cheerio from "cheerio";
 
-// Helper function to extract the first image from HTML content
-const extractImage = (content) => {
-  if (!content) return null;
-  const imgRegex = /<img[^>]+src="([^">]+)"/g;
-  const match = imgRegex.exec(content);
-  return match ? match[1] : null;
-};
+// -------- data helpers --------
+const stripToText = (html) =>
+  cheerio.load(html || "").root().text().replace(/\s+/g, " ").trim();
 
-const extractExcerpt = (content, maxLen = 155) => {
-  if (!content) return '';
-  const text = cheerio.load(content).root().text().replace(/\s+/g, ' ').trim();
-  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+const slugFromLink = (link) => {
+  let s = (link || "").split("/").pop() || "";
+  return s.includes("?") ? s.split("?")[0] : s;
 };
 
 const mapFeedItem = (item, source) => {
-  let slug = item.link.split('/').pop();
-  if (slug.includes('?')) slug = slug.split('?')[0];
-  const rawContent = item['content:encoded'] || item.content || '';
+  const html = item["content:encoded"] || item.content || "";
+  const plain = stripToText(html);
   return {
-    title: item.title,
-    link: item.link,
-    coverImage: extractImage(rawContent) || null,
-    isoDate: item.isoDate || new Date(item.pubDate).toISOString(),
-    slug,
+    title: item.title || "",
+    slug: slugFromLink(item.link),
     source,
-    excerpt: extractExcerpt(rawContent),
-    readingTime: Math.ceil((rawContent.replace(/<[^>]*>?/gm, '').split(/\s+/).length) / 200) || 1
+    isoDate: item.isoDate || (item.pubDate ? new Date(item.pubDate).toISOString() : null),
+    excerpt: plain.length > 155 ? plain.slice(0, 155) + "…" : plain,
+    readingTime: Math.max(1, Math.ceil(plain.split(/\s+/).length / 200)),
   };
 };
 
 export async function getStaticProps() {
   const parser = createParser();
-
   let ocheverseItems = [];
   let bpurItems = [];
   let ocheverseOk = false;
   let bpurOk = false;
 
   try {
-    const ocheverseFeed = await parseFeedResilient(parser, 'ocheverse');
-    ocheverseItems = ocheverseFeed.items.map(item => mapFeedItem(item, 'ocheverse'));
+    const f = await parseFeedResilient(parser, "ocheverse");
+    ocheverseItems = f.items.map((i) => mapFeedItem(i, "ocheverse"));
     ocheverseOk = ocheverseItems.length > 0;
   } catch (e) {
     console.warn("[RSS] Ocheverse feed unavailable:", e.message);
   }
-
   try {
-    const bpurFeed = await parseFeedResilient(parser, 'bpur');
-    bpurItems = bpurFeed.items.map(item => mapFeedItem(item, 'bpur'));
+    const f = await parseFeedResilient(parser, "bpur");
+    bpurItems = f.items.map((i) => mapFeedItem(i, "bpur"));
     bpurOk = bpurItems.length > 0;
   } catch (e) {
     console.warn("[RSS] BPUR feed unavailable:", e.message);
   }
 
-  // If either feed came back empty (usually a transient 429 from the proxy),
-  // shorten ISR so we self-heal in ~1 min instead of caching an empty page for an hour.
-  const revalidate = ocheverseOk && bpurOk ? 3600 : 60;
-
   return {
-    props: {
-      ocheversePosts: ocheverseItems,
-      bpurPosts: bpurItems,
-    },
-    revalidate,
+    props: { ocheversePosts: ocheverseItems, bpurPosts: bpurItems },
+    revalidate: ocheverseOk && bpurOk ? 3600 : 60,
   };
 }
 
-const INITIAL_COUNT = 6;
+// -------- date helpers --------
+const shortDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const yy = String(d.getUTCFullYear()).slice(-2);
+  return `${dd}·${mm}·${yy}`;
+};
+
+// -------- page --------
+const INITIAL = 8;
 
 export default function Blog({ ocheversePosts, bpurPosts }) {
-  const [showAllOcheverse, setShowAllOcheverse] = useState(false);
-  const [showAllBpur, setShowAllBpur] = useState(false);
+  const [filter, setFilter] = useState("all"); // all | ocheverse | bpur
+  const [sort, setSort] = useState("newest"); // newest | oldest | longest
+  const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState({ ocheverse: false, bpur: false });
 
-  const visibleOcheverse = showAllOcheverse ? ocheversePosts : ocheversePosts.slice(0, INITIAL_COUNT);
-  const visibleBpur = showAllBpur ? bpurPosts : bpurPosts.slice(0, INITIAL_COUNT);
+  const applyFilters = (arr) => {
+    let out = [...arr];
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      out = out.filter(
+        (p) => p.title.toLowerCase().includes(q) || (p.excerpt || "").toLowerCase().includes(q)
+      );
+    }
+    if (sort === "oldest") out.sort((a, b) => (a.isoDate || "").localeCompare(b.isoDate || ""));
+    else if (sort === "longest") out.sort((a, b) => (b.readingTime || 0) - (a.readingTime || 0));
+    else out.sort((a, b) => (b.isoDate || "").localeCompare(a.isoDate || ""));
+    return out;
+  };
+
+  const filteredOche = useMemo(() => applyFilters(ocheversePosts), [ocheversePosts, filter, sort, query]);
+  const filteredBpur = useMemo(() => applyFilters(bpurPosts), [bpurPosts, filter, sort, query]);
+
+  const showOche = filter === "all" || filter === "ocheverse";
+  const showBpur = filter === "all" || filter === "bpur";
+
+  const visibleOche = expanded.ocheverse ? filteredOche : filteredOche.slice(0, INITIAL);
+  const visibleBpur = expanded.bpur ? filteredBpur : filteredBpur.slice(0, INITIAL);
 
   return (
     <>
       <Head>
-        <title>Blog – Ocheverse</title>
-        <meta name="description" content="Read the latest engineering stories and essays from David Gideon." />
-        <meta property="og:title" content="Blog – Ocheverse" />
-        <meta property="og:description" content="Engineering war stories, philosophical essays, and everything in between." />
-        <meta property="og:type" content="website" />
+        <title>Archive — Ocheverse</title>
+        <meta
+          name="description"
+          content="The full archive: engineering war stories from Ocheverse and long-form essays from BPUR."
+        />
+        <meta property="og:title" content="Archive — Ocheverse" />
+        <meta property="og:description" content="Engineering stories, essays, and everything in between." />
         <meta property="og:url" content="https://ocheverse.ng/blog" />
-        <meta property="og:image" content="https://ocheverse.ng/api/og?title=Engineering%20Stories%20%26%20Essays&category=Blog" />
+        <meta
+          property="og:image"
+          content="https://ocheverse.ng/api/og?title=The%20Archive&category=Ocheverse"
+        />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Blog – Ocheverse" />
-        <meta name="twitter:description" content="Engineering war stories, philosophical essays, and everything in between." />
-        <meta name="twitter:image" content="https://ocheverse.ng/api/og?title=Engineering%20Stories%20%26%20Essays&category=Blog" />
         <link rel="alternate" type="application/rss+xml" title="Ocheverse Blog RSS" href="/api/feed" />
       </Head>
 
-      <main className="min-h-screen bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 pb-20 animate-fade-in-down">
+      <div className="relative max-w-[1240px] mx-auto px-5 sm:px-10 pt-6 pb-24">
 
-        {/* Hero / Header */}
-        <div className="py-20 text-center px-4">
-          <h1 className="text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 drop-shadow-sm">
-            The Ocheverse Archives
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Engineering war stories, philosophical essays, and everything in between.
-          </p>
+        {/* ============ MASTHEAD ROW ============ */}
+        <div className="flex flex-wrap items-baseline justify-between gap-4 py-3 border-y border-rule font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">
+          <div>
+            The Archive · <b className="text-ink font-medium">{ocheversePosts.length + bpurPosts.length}</b> posts across two publications
+          </div>
+          <a
+            href="/api/feed"
+            className="text-ed-red hover:text-ed-blue transition-colors inline-flex items-center gap-1.5"
+          >
+            <span aria-hidden="true">◇</span> Subscribe via RSS
+          </a>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-24">
-
-          {/* Ocheverse Blog Section */}
-          <section className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl filter drop-shadow-md">✍🏽</span>
-                <div>
-                  <h2 className="text-3xl font-bold text-blue-700 dark:text-blue-400">Ocheverse</h2>
-                  <p className="text-gray-500 font-medium">Engineering & DevOps Stories</p>
-                </div>
-              </div>
-              <a href="https://ocheverse.substack.com" target="_blank" className="hidden sm:inline-block text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-all">
-                View on Substack →
-              </a>
+        {/* ============ HERO ============ */}
+        <section className="pt-16 pb-14 grid gap-y-6 lg:grid-cols-[5fr_1fr] gap-x-10">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft mb-4 flex items-center gap-3">
+              <span className="w-11 h-0.5 bg-ink inline-block" />
+              Every post, filed under paper
             </div>
-
-            {/* Grid: 2 columns on mobile, 3 on large screens */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {visibleOcheverse.map((post, i) => (
-                <BlogCard key={i} post={post} category="Engineering" colorClass="blue" delay={i * 0.05} />
-              ))}
+            <h1
+              className="ed-headline m-0"
+              style={{ fontSize: "clamp(50px, 8.5vw, 120px)", lineHeight: 0.95 }}
+            >
+              The <em style={{ color: "var(--blue)" }}>Ocheverse</em> Archives —
+              <br />
+              <span style={{ color: "var(--ink-soft)" }}>engineering</span>,{" "}
+              <em style={{ color: "var(--red)" }}>essays</em>, and everything in between.
+            </h1>
+          </div>
+          <aside className="flex flex-col justify-end gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+            <div>
+              <b className="text-ed-blue">Ocheverse</b> · {ocheversePosts.length} posts
             </div>
+            <div>
+              <b className="text-ed-red">BPUR</b> · {bpurPosts.length} posts
+            </div>
+            <div className="mt-2 pt-2 border-t border-rule text-ink">
+              Filed weekly-ish
+            </div>
+          </aside>
+        </section>
 
-            {ocheversePosts.length > INITIAL_COUNT && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setShowAllOcheverse(!showAllOcheverse)}
-                  className="text-blue-600 hover:text-blue-800 font-semibold hover:underline transition-all"
-                >
-                  {showAllOcheverse ? '← Show Less' : `Show All ${ocheversePosts.length} Posts →`}
-                </button>
-              </div>
+        {/* ============ FILTER STRIP ============ */}
+        <div className="flex flex-wrap items-center gap-4 md:gap-6 py-4 border-y border-rule-strong font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft">
+          {/* Publication filter */}
+          <div className="flex items-center gap-2">
+            <span>Filed under —</span>
+            {[
+              { id: "all", label: "Both" },
+              { id: "ocheverse", label: "Ocheverse" },
+              { id: "bpur", label: "BPUR" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`px-2.5 py-1 rounded-full border transition-colors ${
+                  filter === f.id
+                    ? "border-ink text-ink"
+                    : "border-rule text-ink-soft hover:text-ink hover:border-rule-strong"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <span>Sort —</span>
+            {[
+              { id: "newest", label: "Newest" },
+              { id: "oldest", label: "Oldest" },
+              { id: "longest", label: "Longest" },
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSort(s.id)}
+                className={`px-2.5 py-1 rounded-full border transition-colors ${
+                  sort === s.id
+                    ? "border-ink text-ink"
+                    : "border-rule text-ink-soft hover:text-ink hover:border-rule-strong"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div className="flex-1 min-w-[220px] flex items-center gap-2 border-b border-rule pb-1">
+            <span aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              placeholder="Find a post…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 bg-transparent border-0 outline-none font-mono text-[12px] tracking-[0.06em] uppercase text-ink placeholder-ink-soft"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="text-ink-soft hover:text-ed-red"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
             )}
-
-            <div className="mt-4 text-center sm:hidden">
-              <a href="https://ocheverse.substack.com" target="_blank" className="text-blue-600 font-semibold hover:underline">
-                View all on Substack →
-              </a>
-            </div>
-          </section>
-
-          {/* Newsletter CTA Break */}
-          <section className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-8 sm:p-12 text-center text-white shadow-2xl transform hover:scale-[1.01] transition-transform duration-300 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Don't Miss the Next Story</h2>
-            <p className="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-8">
-              Join dozens of engineers reading about the chaotic beauty of distributed systems and life lessons.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="https://ocheverse.substack.com/subscribe" target="_blank" className="bg-white text-blue-600 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-100 transition-colors">
-                Subscribe to Ocheverse
-              </a>
-              <a href="https://bpur.substack.com/subscribe" target="_blank" className="bg-purple-800 bg-opacity-30 text-white border-2 border-purple-400 font-bold py-3 px-8 rounded-full hover:bg-purple-800 hover:bg-opacity-50 transition-colors">
-                Subscribe to BPUR
-              </a>
-            </div>
-          </section>
-
-          {/* BPUR Blog Section */}
-          <section className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl filter drop-shadow-md">🧠</span>
-                <div>
-                  <h2 className="text-3xl font-bold text-purple-700 dark:text-purple-400">BPUR</h2>
-                  <p className="text-gray-500 font-medium">Big Picture, Unfiltered, Real</p>
-                </div>
-              </div>
-              <a href="https://bpur.substack.com" target="_blank" className="hidden sm:inline-block text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-all">
-                View on Substack →
-              </a>
-            </div>
-
-            {/* Grid: 2 columns on mobile, 3 on large screens */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-              {visibleBpur.map((post, i) => (
-                <BlogCard key={i} post={post} category="Essay" colorClass="purple" delay={i * 0.05} />
-              ))}
-            </div>
-
-            {bpurPosts.length > INITIAL_COUNT && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setShowAllBpur(!showAllBpur)}
-                  className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-all"
-                >
-                  {showAllBpur ? '← Show Less' : `Show All ${bpurPosts.length} Posts →`}
-                </button>
-              </div>
-            )}
-
-            <div className="mt-4 text-center sm:hidden">
-              <a href="https://bpur.substack.com" target="_blank" className="text-purple-600 font-semibold hover:underline">
-                View all on Substack →
-              </a>
-            </div>
-          </section>
-
+          </div>
         </div>
-      </main>
 
-      {/* Simple Inline Styles for Animations (Quick wins without extra CSS files) */}
-      <style jsx global>{`
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-down {
-          animation: fadeInDown 0.8s ease-out forwards;
-        }
-        .animate-slide-up {
-          opacity: 0;
-          animation: slideUp 0.8s ease-out forwards;
-        }
-      `}</style>
+        {/* ============ SHELVES ============ */}
+        <div className="relative pt-16 grid gap-y-24 lg:gap-x-20 lg:grid-cols-2">
+          {filter === "all" && (
+            <div
+              aria-hidden="true"
+              className="hidden lg:block absolute top-16 bottom-0 left-1/2 w-px bg-rule"
+            />
+          )}
+
+          {showOche && (
+            <ArchiveShelf
+              tone="ocheverse"
+              name="Ocheverse"
+              tag="Engineering · Weekly"
+              blurb="Main Branch Mayhem — war stories from distributed systems, DevOps, and the servers I broke on the way here."
+              posts={visibleOche}
+              total={filteredOche.length}
+              rawTotal={ocheversePosts.length}
+              onExpand={() => setExpanded((s) => ({ ...s, ocheverse: !s.ocheverse }))}
+              expanded={expanded.ocheverse}
+              substackHref="https://ocheverse.substack.com"
+            />
+          )}
+
+          {showBpur && (
+            <ArchiveShelf
+              tone="bpur"
+              name="BPUR"
+              tag="Essays · When it hits"
+              blurb="Big picture, unfiltered, real. Long-form on ambition, slowness, and the meta-work behind the work."
+              posts={visibleBpur}
+              total={filteredBpur.length}
+              rawTotal={bpurPosts.length}
+              onExpand={() => setExpanded((s) => ({ ...s, bpur: !s.bpur }))}
+              expanded={expanded.bpur}
+              substackHref="https://bpur.substack.com"
+            />
+          )}
+        </div>
+
+        {/* ============ SUBSCRIBE CTA ============ */}
+        <section
+          className="mt-24 grid gap-6 md:grid-cols-[1fr_auto] items-end pt-10 pb-4"
+          style={{ borderTop: "3px double var(--rule-strong)", borderBottom: "3px double var(--rule-strong)" }}
+        >
+          <div>
+            <div className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft mb-3">
+              Don't miss the next filing
+            </div>
+            <h2
+              className="ed-headline m-0"
+              style={{ fontSize: "clamp(28px, 4.4vw, 52px)", lineHeight: 0.98 }}
+            >
+              Get new posts in your inbox<br />
+              — <em style={{ color: "var(--blue)" }}>weekly-ish</em>, always <em style={{ color: "var(--green)" }}>free</em>.
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://ocheverse.substack.com/subscribe"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[0.14em] text-paper bg-ed-blue px-6 py-3.5 rounded-full hover:-translate-y-0.5 hover:bg-ed-blue-ink transition-all"
+            >
+              Subscribe to Ocheverse
+              <span aria-hidden="true">→</span>
+            </a>
+            <a
+              href="https://bpur.substack.com/subscribe"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 font-mono text-[11.5px] uppercase tracking-[0.14em] text-ink border border-ed-red px-6 py-3.5 rounded-full hover:bg-ed-red hover:text-paper transition-all"
+            >
+              Subscribe to BPUR
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </section>
+      </div>
     </>
   );
 }
 
-// Reusable Card Component
-function BlogCard({ post, category, colorClass, delay }) {
-  const date = new Date(post.isoDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: '2-digit' // Shorter date for mobile space
-  });
-
-  const borderColor = colorClass === 'blue' ? 'border-blue-500' : 'border-purple-500';
-  const bgColor = colorClass === 'blue' ? 'bg-blue-600' : 'bg-purple-600';
-  const textColor = colorClass === 'blue' ? 'text-blue-600' : 'text-purple-600';
-  const groupHoverText = colorClass === 'blue' ? 'group-hover:text-blue-500 dark:group-hover:text-blue-400' : 'group-hover:text-purple-500 dark:group-hover:text-purple-400';
+// ---------------- ArchiveShelf ----------------
+function ArchiveShelf({ tone, name, tag, blurb, posts, total, rawTotal, onExpand, expanded, substackHref }) {
+  const toneColor = tone === "ocheverse" ? "var(--blue)" : "var(--red)";
+  const label = tone === "ocheverse" ? "Ocheverse" : "Essay";
+  const hoverBorder = tone === "ocheverse" ? "hover:border-ed-blue" : "hover:border-ed-red";
 
   return (
-    <Link
-      href={`/blog/${post.source}/${post.slug}`}
-      className={`group flex flex-col bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full animate-slide-up`}
-      style={{ animationDelay: `${0.2 + delay}s` }}
-    >
-      {/* Image Area - Reduced height on mobile to fit 2 cols */}
-      <div className="h-28 sm:h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
-        {post.coverImage ? (
-          <img
-            src={post.coverImage}
-            alt={post.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className={`w-full h-full flex items-center justify-center opacity-20 ${bgColor}`}>
-            <span className="text-2xl sm:text-4xl">📄</span>
-          </div>
+    <div>
+      <div className="flex items-baseline justify-between gap-4 mb-8 pb-4 border-b border-rule-strong">
+        <h2
+          className="font-editorial italic font-normal m-0 leading-none tracking-tight"
+          style={{ fontSize: 44, color: toneColor }}
+        >
+          {name}
+        </h2>
+        <span className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-soft">
+          {tag}
+        </span>
+      </div>
+      <p className="font-editorial italic text-ink-soft text-[14.5px] -mt-5 mb-8 pl-0.5">{blurb}</p>
+
+      <ol className="list-none p-0 m-0 flex flex-col">
+        {posts.length === 0 && (
+          <li className="font-mono text-[11px] text-ink-soft py-6 border-t border-rule">
+            No posts match the filter.
+          </li>
         )}
-      </div>
+        {posts.map((p, i) => (
+          <li key={p.slug || i}>
+            <Link
+              href={`/blog/${p.source}/${p.slug}`}
+              className="ed-post group grid grid-cols-[34px_1fr_auto] items-baseline gap-5 py-5 border-t border-rule text-ink first:border-t-0"
+            >
+              <span className="font-mono text-[11px] tracking-[0.1em] text-ink-soft pt-1.5">
+                {String(i + 1).padStart(2, "0")}/
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
+                  <em className="not-italic font-semibold" style={{ color: toneColor }}>
+                    {label}
+                  </em>{" "}
+                  · {p.readingTime} min · {shortDate(p.isoDate)}
+                </span>
+                <span
+                  className="ed-title-link font-editorial italic text-[20px] leading-[1.2] text-ink max-w-[42ch] text-wrap-balance"
+                >
+                  {p.title}
+                </span>
+                {p.excerpt && (
+                  <span className="text-[13.5px] text-ink-soft font-editorial max-w-[52ch] leading-snug">
+                    {p.excerpt}
+                  </span>
+                )}
+              </div>
+              <span className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-soft pt-2 whitespace-nowrap">
+                {p.readingTime}′
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
 
-      {/* Content Area - Compact padding for mobile */}
-      <div className={`p-3 sm:p-6 flex flex-col flex-grow border-b-4 ${borderColor}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 sm:mb-3 text-xs sm:text-sm">
-          <span className={`font-bold ${textColor} uppercase tracking-wider text-[10px] sm:text-xs truncate`}>{category}</span>
-          <div className="text-gray-500 dark:text-gray-400 whitespace-nowrap space-x-1 sm:space-x-2">
-            <span>{date}</span>
-            <span className="hidden sm:inline">·</span>
-            <span>{post.readingTime || 1} min read</span>
-          </div>
+      <div className="flex flex-wrap justify-between items-center gap-3 mt-8 pt-5 border-t border-rule-strong font-mono text-[11px] tracking-[0.12em] uppercase text-ink-soft">
+        <span>
+          Showing <b className="text-ink font-medium">{posts.length}</b> of {total}
+          {total !== rawTotal && ` (filtered from ${rawTotal})`}
+        </span>
+        <div className="flex items-center gap-4">
+          {total > posts.length || expanded ? (
+            <button
+              onClick={onExpand}
+              className={`text-ink pb-0.5 border-b-[1.5px] border-transparent transition-colors ${hoverBorder}`}
+            >
+              {expanded ? "← Show fewer" : `Show all ${total} →`}
+            </button>
+          ) : null}
+          <a
+            href={substackHref}
+            target="_blank"
+            rel="noreferrer"
+            className={`text-ink-soft pb-0.5 border-b-[1.5px] border-transparent transition-colors ${hoverBorder}`}
+          >
+            On Substack ↗
+          </a>
         </div>
-
-        <h3 className={`text-sm sm:text-xl font-bold mb-2 sm:mb-3 leading-tight ${groupHoverText} transition-colors line-clamp-3`}>
-          {post.title}
-        </h3>
       </div>
-    </Link>
+    </div>
   );
 }

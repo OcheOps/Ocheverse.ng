@@ -163,39 +163,13 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
         />
       </Head>
 
-      <main className="editorial-surface min-h-screen">
-        <div className="relative z-[3] max-w-[1240px] mx-auto px-5 sm:px-10 pt-10">
-          {/* ============ MASTHEAD ============ */}
-          <header className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-6 pb-3 border-b border-rule-strong font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">
-            <div className="flex gap-5 flex-wrap">
-              <span>
-                Est. <b className="text-ink font-medium">2024</b>
-              </span>
-              <span>
-                Issue №<b className="text-ink font-medium">{issue}</b>
-              </span>
-              <span>
-                Lagos · <b className="text-ink font-medium">{todayShort}</b>
-              </span>
+      <main className="min-h-screen">
+        <div className="relative max-w-[1240px] mx-auto px-5 sm:px-10 pt-6">
+          {/* ============ SUB-STRIP (issue meta specific to homepage) ============ */}
+          <div className="flex justify-between items-center py-3 border-y border-rule font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
+            <div>
+              Issue №<b className="text-ink font-medium">{issue}</b> · Two publications · One author · Weekly-ish
             </div>
-            <Link
-              href="/"
-              className="font-editorial italic text-[26px] text-ink normal-case tracking-tight leading-none pt-0.5 flex items-center gap-2"
-            >
-              <span className="inline-block w-2 h-2 rounded-full bg-ed-red" aria-hidden="true" />
-              Ocheverse
-            </Link>
-            <div className="hidden sm:flex justify-end gap-4">
-              <a href="/blog" className="hover:text-ed-blue transition-colors">Archive</a>
-              <a href="/now" className="hover:text-ed-blue transition-colors">Now</a>
-              <a href="/stack" className="hover:text-ed-blue transition-colors">Stack</a>
-              <a href="/guestbook" className="hover:text-ed-blue transition-colors">Guestbook</a>
-            </div>
-          </header>
-
-          {/* ============ SUB-STRIP ============ */}
-          <div className="flex justify-between items-center py-2 border-b border-rule font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
-            <div>Two publications · One author · Weekly-ish</div>
             <div className="hidden md:inline-flex items-center gap-2 text-ink">
               <span className="ed-live-dot" aria-hidden="true" />
               Deploying · self-hosted runner
@@ -431,21 +405,6 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
             </div>
           </section>
 
-          {/* ============ COLOPHON ============ */}
-          <footer className="py-10 flex flex-wrap justify-between items-baseline gap-6 font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
-            <div>
-              <div className="mb-1.5">Set in Georgia italic &amp; ui-monospace · Printed in Lagos</div>
-              <div>
-                Handmade with self-hosted runners &amp; Tailscale · No trackers ·{" "}
-                <a href="/feed.xml" className="text-ink border-b border-rule-strong hover:text-ed-blue hover:border-ed-blue">
-                  RSS
-                </a>
-              </div>
-            </div>
-            <p className="font-editorial italic text-[22px] text-ink normal-case tracking-tight m-0">
-              Signed<span className="text-ed-blue">,</span> Oche.
-            </p>
-          </footer>
         </div>
       </main>
     </>

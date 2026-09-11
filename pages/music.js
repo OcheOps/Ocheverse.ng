@@ -1,25 +1,25 @@
-import Head from 'next/head';
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import NowPlaying from '../components/NowPlaying';
+import Head from "next/head";
+import Image from "next/image";
+import { useState, useEffect } from "react";
+import NowPlaying from "../components/NowPlaying";
 
 const TIME_RANGES = [
-  { key: 'short_term', label: 'Last 4 Weeks' },
-  { key: 'medium_term', label: 'Last 6 Months' },
-  { key: 'long_term', label: 'All Time' },
+  { key: "short_term", label: "Last 4 weeks" },
+  { key: "medium_term", label: "Last 6 months" },
+  { key: "long_term", label: "All time" },
 ];
 
 function formatDuration(ms) {
   const min = Math.floor(ms / 60000);
   const sec = Math.floor((ms % 60000) / 1000);
-  return `${min}:${sec.toString().padStart(2, '0')}`;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
 export default function Music() {
   const [tracks, setTracks] = useState([]);
-  const [range, setRange] = useState('short_term');
+  const [range, setRange] = useState("short_term");
   const [loading, setLoading] = useState(true);
-  const [hoveredTrack, setHoveredTrack] = useState(null);
+  const [playing, setPlaying] = useState(null);
   const [audio, setAudio] = useState(null);
 
   useEffect(() => {
@@ -33,12 +33,14 @@ export default function Music() {
       .catch(() => setLoading(false));
   }, [range]);
 
+  useEffect(() => () => { if (audio) audio.pause(); }, [audio]);
+
   const handlePreview = (track) => {
     if (audio) {
       audio.pause();
       setAudio(null);
-      if (hoveredTrack === track.rank) {
-        setHoveredTrack(null);
+      if (playing === track.rank) {
+        setPlaying(null);
         return;
       }
     }
@@ -47,127 +49,210 @@ export default function Music() {
       a.volume = 0.3;
       a.play();
       setAudio(a);
-      setHoveredTrack(track.rank);
-      a.onended = () => { setHoveredTrack(null); setAudio(null); };
+      setPlaying(track.rank);
+      a.onended = () => { setPlaying(null); setAudio(null); };
     }
   };
-
-  useEffect(() => {
-    return () => { if (audio) audio.pause(); };
-  }, [audio]);
 
   return (
     <>
       <Head>
-        <title>Music – Ocheverse</title>
-        <meta name="description" content="What David Gideon is listening to on Spotify." />
-        <meta property="og:title" content="Music – Ocheverse" />
-        <meta property="og:description" content="What David Gideon is listening to on Spotify." />
+        <title>The Charts — Ocheverse</title>
+        <meta name="description" content="What David Gideon has been listening to on Spotify." />
+        <meta property="og:title" content="The Charts — Ocheverse" />
+        <meta property="og:description" content="What I've been vibing to. Live from Spotify." />
       </Head>
 
-      <main className="min-h-screen bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 pb-20">
-        <div className="py-20 text-center px-4">
-          <h1 className="text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-green-600">
-            Music
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            What I've been vibing to. Live from Spotify.
-          </p>
+      <div className="relative max-w-[1240px] mx-auto px-5 sm:px-10 pt-6 pb-24">
+
+        {/* Masthead row */}
+        <div className="flex flex-wrap items-baseline justify-between gap-4 py-3 border-y border-rule font-mono text-[11px] uppercase tracking-[0.08em] text-ink-soft">
+          <div>
+            The Charts · <b className="text-ink font-medium">Live from Spotify</b>
+          </div>
+          <div className="inline-flex items-center gap-2 text-ink">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ background: "var(--green-live)" }}
+              aria-hidden="true"
+            />
+            Now spinning
+          </div>
         </div>
 
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-8">
-          <NowPlaying />
+        {/* Hero */}
+        <section className="pt-16 pb-12 grid gap-y-8 lg:grid-cols-[5fr_2fr] gap-x-10 items-end">
+          <div>
+            <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft mb-4 flex items-center gap-3">
+              <span className="w-11 h-0.5 bg-ink inline-block" />
+              Sound-tracking the deploys
+            </div>
+            <h1
+              className="ed-headline m-0"
+              style={{ fontSize: "clamp(46px, 8.6vw, 120px)", lineHeight: 0.96 }}
+            >
+              What&rsquo;s been on{" "}
+              <em style={{ color: "var(--red)" }}>heavy</em>{" "}
+              <em style={{ color: "var(--green)" }}>rotation</em>.
+            </h1>
+          </div>
+          <p className="font-editorial italic text-ink-soft text-[16px] leading-relaxed max-w-[36ch]">
+            The unofficial soundtrack of every incident, essay, and Terraform apply.
+          </p>
+        </section>
 
-          <div className="flex justify-center gap-2">
-            {TIME_RANGES.map((tr) => (
-              <button
-                key={tr.key}
-                onClick={() => setRange(tr.key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  range === tr.key
-                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/25'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+        {/* Now playing */}
+        <div className="pt-8 border-t border-rule-strong">
+          <div className="mb-8 pb-3 border-b border-rule">
+            <div className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-soft mb-1">
+              At the console
+            </div>
+            <h2
+              className="font-editorial italic font-normal m-0 leading-none tracking-tight"
+              style={{ fontSize: 32, color: "var(--green)" }}
+            >
+              Now playing
+            </h2>
+          </div>
+          <div className="pb-14">
+            <NowPlaying />
+          </div>
+        </div>
+
+        {/* Range switcher */}
+        <div className="pt-8 border-t border-rule-strong">
+          <div className="mb-8 pb-3 border-b border-rule flex items-baseline justify-between gap-4 flex-wrap">
+            <div>
+              <div className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-soft mb-1">
+                The chart
+              </div>
+              <h2
+                className="font-editorial italic font-normal m-0 leading-none tracking-tight"
+                style={{ fontSize: 32, color: "var(--red)" }}
               >
-                {tr.label}
-              </button>
-            ))}
+                Top tracks
+              </h2>
+            </div>
+            <div className="flex flex-wrap gap-2 font-mono text-[11px] uppercase tracking-[0.12em]">
+              {TIME_RANGES.map((tr) => (
+                <button
+                  key={tr.key}
+                  onClick={() => setRange(tr.key)}
+                  className={`px-3 py-1 rounded-full border transition-colors ${
+                    range === tr.key
+                      ? "border-ink text-ink"
+                      : "border-rule text-ink-soft hover:text-ink hover:border-rule-strong"
+                  }`}
+                >
+                  {tr.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {loading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl">
-                  <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded" />
-                  <div className="w-14 h-14 bg-gray-200 dark:bg-gray-700 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+            <ul className="list-none p-0 m-0">
+              {[...Array(6)].map((_, i) => (
+                <li key={i} className="grid grid-cols-[36px_56px_1fr_60px] gap-4 items-center py-4 border-b border-rule">
+                  <div className="h-4 bg-rule rounded animate-pulse" />
+                  <div className="w-14 h-14 bg-rule rounded animate-pulse" />
+                  <div className="flex flex-col gap-2">
+                    <div className="h-3.5 bg-rule rounded w-3/4 animate-pulse" />
+                    <div className="h-3 bg-rule rounded w-1/2 animate-pulse" />
                   </div>
-                </div>
+                  <div className="h-3 bg-rule rounded animate-pulse" />
+                </li>
               ))}
-            </div>
+            </ul>
           ) : tracks.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <p className="text-lg">No top tracks data available yet.</p>
-              <p className="text-sm mt-2">Spotify needs more listening history to generate this.</p>
+            <div className="text-center py-14">
+              <p className="font-editorial italic text-ink text-[18px] mb-2">No top tracks yet.</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft">
+                Spotify needs more listening history to generate this.
+              </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {tracks.map((track) => (
-                <div
-                  key={track.rank}
-                  onClick={() => handlePreview(track)}
-                  className={`group flex items-center gap-4 p-3 sm:p-4 rounded-xl border transition-all cursor-pointer ${
-                    hoveredTrack === track.rank
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 shadow-lg shadow-green-500/10'
-                      : 'bg-white dark:bg-gray-800/50 border-gray-100 dark:border-gray-700 hover:border-green-200 dark:hover:border-green-800 hover:shadow-md'
-                  }`}
-                >
-                  <span className={`w-8 text-center font-bold text-lg ${
-                    track.rank <= 3 ? 'text-green-500' : 'text-gray-400'
-                  }`}>
-                    {track.rank}
-                  </span>
+            <ol className="list-none p-0 m-0">
+              {tracks.map((track) => {
+                const isPlaying = playing === track.rank;
+                const isTop = track.rank <= 3;
+                return (
+                  <li key={track.rank}>
+                    <div
+                      onClick={() => handlePreview(track)}
+                      role={track.previewUrl ? "button" : undefined}
+                      tabIndex={track.previewUrl ? 0 : -1}
+                      onKeyDown={(e) => {
+                        if (track.previewUrl && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          handlePreview(track);
+                        }
+                      }}
+                      className={`grid grid-cols-[36px_56px_1fr_auto] items-center gap-4 py-4 border-b border-rule transition-colors ${
+                        track.previewUrl ? "cursor-pointer" : ""
+                      } ${isPlaying ? "text-ink" : "hover:text-ink"}`}
+                    >
+                      <span
+                        className={`font-editorial italic text-[24px] leading-none ${
+                          isTop ? "" : "text-ink-soft"
+                        }`}
+                        style={isTop ? { color: "var(--red)" } : {}}
+                      >
+                        {String(track.rank).padStart(2, "0")}
+                      </span>
 
-                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
-                    {track.albumImageUrl && (
-                      <Image
-                        src={track.albumImageUrl}
-                        alt={track.album}
-                        fill
-                        className={`rounded-lg object-cover ${hoveredTrack === track.rank ? 'animate-[spin_3s_linear_infinite]' : ''}`}
-                        unoptimized
-                      />
-                    )}
-                    {track.previewUrl && (
-                      <div className={`absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 transition-opacity ${
-                        hoveredTrack === track.rank ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`}>
-                        <span className="text-white text-lg">{hoveredTrack === track.rank ? '⏸' : '▶'}</span>
+                      <div className="relative w-14 h-14 flex-shrink-0 overflow-hidden">
+                        {track.albumImageUrl && (
+                          <Image
+                            src={track.albumImageUrl}
+                            alt={track.album}
+                            fill
+                            className={`object-cover ${isPlaying ? "animate-[spin_3s_linear_infinite]" : ""}`}
+                            unoptimized
+                          />
+                        )}
+                        {track.previewUrl && (
+                          <div
+                            className={`absolute inset-0 flex items-center justify-center transition-opacity ${
+                              isPlaying ? "opacity-100" : "opacity-0 hover:opacity-100"
+                            }`}
+                            style={{ background: "color-mix(in oklab, var(--ink) 55%, transparent)" }}
+                          >
+                            <span className="font-mono text-[16px] text-paper">{isPlaying ? "⏸" : "▶"}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    <a href={track.songUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                      className="font-semibold text-gray-900 dark:text-white truncate block hover:underline text-sm sm:text-base">
-                      {track.title}
-                    </a>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm truncate">{track.artist}</p>
-                  </div>
+                      <div className="min-w-0">
+                        <a
+                          href={track.songUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="ed-title-link font-editorial italic text-[18px] leading-tight text-ink block truncate max-w-full"
+                        >
+                          {track.title}
+                        </a>
+                        <div className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft truncate mt-1">
+                          {track.artist}
+                        </div>
+                      </div>
 
-                  <span className="text-xs text-gray-400 hidden sm:block">{formatDuration(track.duration)}</span>
-                </div>
-              ))}
-            </div>
+                      <span className="font-mono text-[10.5px] tracking-[0.1em] text-ink-soft hidden sm:block whitespace-nowrap">
+                        {formatDuration(track.duration)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
           )}
 
-          <p className="text-center text-xs text-gray-400 pt-4">
-            {tracks.length > 0 && 'Click a track to preview • '}Data from Spotify API
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-soft text-center pt-8">
+            {tracks.length > 0 && "Click a track to preview · "}Data from the Spotify API
           </p>
         </div>
-      </main>
+      </div>
     </>
   );
 }

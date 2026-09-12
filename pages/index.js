@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useState } from "react";
 import { createParser, parseFeedResilient } from "../lib/rssParser";
 import * as cheerio from "cheerio";
 
@@ -49,9 +50,15 @@ export async function getStaticProps() {
     console.warn("[home] BPUR feed unavailable:", e.message);
   }
 
-  const featured = ocheversePosts[0] || bpurPosts[0] || null;
-  const ocheverseLatest = ocheversePosts.slice(featured?.source === "ocheverse" ? 1 : 0, 4);
-  const bpurLatest = bpurPosts.slice(featured?.source === "bpur" ? 1 : 0, 4);
+  // Featured post per publication — the hero can switch between them
+  const featured = {
+    ocheverse: ocheversePosts[0] || null,
+    bpur: bpurPosts[0] || null,
+  };
+
+  // Latest strip skips the featured for each shelf
+  const ocheverseLatest = ocheversePosts.slice(1, 4);
+  const bpurLatest = bpurPosts.slice(1, 4);
 
   const marquee = [...ocheversePosts.slice(0, 3), ...bpurPosts.slice(0, 3)]
     .map((p) => p.title)
@@ -101,13 +108,29 @@ const splitWords = (text) =>
   );
 
 export default function Home({ featured, ocheverseLatest, bpurLatest, totals, marquee }) {
+  // Which publication is the cover story right now?
+  // Default to whichever has a fresher post.
+  const initialTab = (() => {
+    const o = featured?.ocheverse?.isoDate || "";
+    const b = featured?.bpur?.isoDate || "";
+    if (!featured?.ocheverse) return "bpur";
+    if (!featured?.bpur) return "ocheverse";
+    return b > o ? "bpur" : "ocheverse";
+  })();
+
+  const [activeTab, setActiveTab] = useState(initialTab);
+
   const totalPosts = (totals?.ocheverse || 0) + (totals?.bpur || 0);
   const issue = issueNumber(totalPosts);
   const today = new Date();
-  const todayShort = today.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
-  const featuredHref = featured
-    ? `/blog/${featured.source}/${featured.slug}`
+  const activePost = featured?.[activeTab] || featured?.ocheverse || featured?.bpur;
+  const tabToneColor = activeTab === "ocheverse" ? "var(--blue)" : "var(--red)";
+  const otherTab = activeTab === "ocheverse" ? "bpur" : "ocheverse";
+  const otherPost = featured?.[otherTab];
+
+  const featuredHref = activePost
+    ? `/blog/${activePost.source}/${activePost.slug}`
     : "/blog";
 
   const marqueeItems =
@@ -164,140 +187,181 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
       </Head>
 
       <main className="min-h-screen">
-        <div className="relative max-w-[1240px] mx-auto px-5 sm:px-10 pt-6">
-          {/* ============ SUB-STRIP (issue meta specific to homepage) ============ */}
-          <div className="flex justify-between items-center py-3 border-y border-rule font-mono text-[11px] uppercase tracking-[0.06em] text-ink-soft">
-            <div>
-              Issue №<b className="text-ink font-medium">{issue}</b> · Two publications · One author · Weekly-ish
-            </div>
-            <div className="hidden md:inline-flex items-center gap-2 text-ink">
+        <div className="relative max-w-[1240px] mx-auto px-5 sm:px-10 pt-4 sm:pt-6">
+
+          {/* ============ SUB-STRIP (issue meta) ============ */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2.5 sm:py-3 border-y border-rule font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.06em] text-ink-soft">
+            <span>
+              Issue №<b className="text-ink font-medium">{issue}</b>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>Two publications · One author</span>
+            <span className="ml-auto hidden sm:inline-flex items-center gap-2 text-ink">
               <span className="ed-live-dot" aria-hidden="true" />
-              Deploying · self-hosted runner
-            </div>
+              Weekly-ish
+            </span>
           </div>
 
           {/* ============ HERO ============ */}
           <section
-            className="relative pt-16 sm:pt-20 pb-20 sm:pb-24 grid gap-y-7 gap-x-10 lg:grid-cols-[1fr_5fr_1fr] lg:[grid-template-areas:'kicker_headline_aside''kicker_headline_aside''meta_headline_cta']"
+            className="relative pt-10 sm:pt-16 pb-14 sm:pb-24"
             aria-labelledby="featured-title"
           >
-            {/* floating issue number */}
-            <div
-              aria-hidden="true"
-              className="hidden lg:block absolute top-10 right-[-4px] font-editorial italic pointer-events-none select-none"
-              style={{
-                fontSize: "clamp(80px, 12vw, 190px)",
-                lineHeight: 0.85,
-                letterSpacing: "-0.05em",
-                color: "transparent",
-                WebkitTextStroke: "1.2px var(--rule-strong)",
-              }}
-            >
-              {issue[0]}
-              <span style={{ color: "var(--red)", WebkitTextStroke: 0 }}>{issue[1]}</span>
-              {issue[2]}
-            </div>
+            {/* Tab picker — pick a cover story */}
+            <TabPicker
+              active={activeTab}
+              onChange={setActiveTab}
+              ocheversePost={featured?.ocheverse}
+              bpurPost={featured?.bpur}
+            />
 
-            {/* kicker */}
-            <div className="lg:[grid-area:kicker] font-mono text-[11px] uppercase tracking-[0.14em] text-ink-soft leading-normal">
-              <div className="w-11 h-0.5 bg-ink mb-4" />
-              <b className="block text-ed-red font-semibold mb-1.5 tracking-[0.18em]">
-                Featured essay
-              </b>
-              From the desk<br />
-              {featured?.source === "bpur" ? "BPUR" : "Ocheverse"}
-              {featured?.isoDate ? (
-                <>
-                  ,<br />
-                  Filed {longDate(featured.isoDate)}
-                </>
-              ) : null}
-            </div>
-
-            {/* headline */}
-            <h1
-              id="featured-title"
-              className="ed-headline ed-hero-headline lg:[grid-area:headline] m-0 cursor-default"
-              style={{
-                fontSize: "clamp(46px, 9.2vw, 132px)",
-                lineHeight: 0.96,
-              }}
-            >
-              <span className="text-ed-red font-editorial not-italic">“</span>
-              {featured
-                ? splitWords(featured.title)
-                : splitWords("A field guide to shipping software that lives out here.")}
-              <span className="text-ed-red font-editorial not-italic">”</span>
-            </h1>
-
-            {/* meta */}
-            <div className="lg:[grid-area:meta] lg:self-end font-mono text-[11px] uppercase tracking-[0.1em] text-ink-soft space-y-1">
-              <div>
-                <b className="text-ink font-medium">David Gideon</b>
+            <div className="grid gap-y-6 sm:gap-y-8 lg:gap-y-7 gap-x-6 lg:gap-x-10 lg:grid-cols-[1fr_5fr_1fr] lg:[grid-template-areas:'kicker_headline_aside''kicker_headline_aside''meta_headline_cta']">
+              {/* floating issue number — only on very large screens where it can breathe */}
+              <div
+                aria-hidden="true"
+                className="hidden xl:block absolute top-24 -right-4 font-editorial italic pointer-events-none select-none z-0"
+                style={{
+                  fontSize: "clamp(80px, 10vw, 170px)",
+                  lineHeight: 0.85,
+                  letterSpacing: "-0.05em",
+                  color: "transparent",
+                  WebkitTextStroke: "1.2px var(--rule-strong)",
+                }}
+              >
+                {issue[0]}
+                <span style={{ color: "var(--red)", WebkitTextStroke: 0 }}>{issue[1]}</span>
+                {issue[2]}
               </div>
-              <div>
-                {featured?.source === "bpur" ? "BPUR" : "Ocheverse"}
-                {featured?.readingTime ? ` · ${featured.readingTime} min read` : ""}
+
+              {/* kicker */}
+              <div className="lg:[grid-area:kicker] font-mono text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-ink-soft leading-normal relative z-[1]">
+                <div className="w-11 h-0.5 bg-ink mb-3 sm:mb-4" />
+                <b
+                  className="block font-semibold mb-1.5 tracking-[0.18em]"
+                  style={{ color: tabToneColor }}
+                >
+                  Featured essay
+                </b>
+                From the desk<br />
+                {activeTab === "bpur" ? "BPUR" : "Ocheverse"}
+                {activePost?.isoDate ? (
+                  <>
+                    ,<br />
+                    Filed {longDate(activePost.isoDate)}
+                  </>
+                ) : null}
               </div>
-              {featured?.isoDate && (
+
+              {/* headline */}
+              <h1
+                id="featured-title"
+                className="ed-headline ed-hero-headline lg:[grid-area:headline] m-0 cursor-default relative z-[1]"
+                style={{
+                  fontSize: "clamp(38px, 8.4vw, 128px)",
+                  lineHeight: 0.98,
+                }}
+                key={activeTab}
+              >
+                <span
+                  className="font-editorial not-italic"
+                  style={{ color: tabToneColor }}
+                >
+                  “
+                </span>
+                {activePost
+                  ? splitWords(activePost.title)
+                  : splitWords("A field guide to shipping software that lives out here.")}
+                <span
+                  className="font-editorial not-italic"
+                  style={{ color: tabToneColor }}
+                >
+                  ”
+                </span>
+              </h1>
+
+              {/* meta */}
+              <div className="lg:[grid-area:meta] lg:self-end font-mono text-[10.5px] sm:text-[11px] uppercase tracking-[0.1em] text-ink-soft space-y-1 relative z-[1]">
                 <div>
-                  Published{" "}
-                  <b className="text-ink font-medium">{shortDate(featured.isoDate)}</b>
+                  <b className="text-ink font-medium">David Gideon</b>
                 </div>
-              )}
+                <div>
+                  {activeTab === "bpur" ? "BPUR" : "Ocheverse"}
+                  {activePost?.readingTime ? ` · ${activePost.readingTime} min read` : ""}
+                </div>
+                {activePost?.isoDate && (
+                  <div>
+                    Published{" "}
+                    <b className="text-ink font-medium">{shortDate(activePost.isoDate)}</b>
+                  </div>
+                )}
+              </div>
+
+              {/* aside */}
+              <aside className="lg:[grid-area:aside] flex flex-col gap-3 sm:gap-4 pt-3 relative z-[1]">
+                {/* Cross-feature card — link to the OTHER publication's latest */}
+                {otherPost && (
+                  <Link
+                    href={`/blog/${otherPost.source}/${otherPost.slug}`}
+                    className="group border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed hover:-translate-y-0.5 transition-transform"
+                    style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
+                  >
+                    <div
+                      className="flex items-center gap-2 font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-dashed border-rule-strong"
+                      style={{ color: otherTab === "bpur" ? "var(--red)" : "var(--blue)" }}
+                    >
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ background: otherTab === "bpur" ? "var(--red)" : "var(--blue)" }}
+                        aria-hidden="true"
+                      />
+                      Also in {otherTab === "bpur" ? "BPUR" : "Ocheverse"}
+                    </div>
+                    <div className="ed-title-link font-editorial italic not-italic text-ink text-[14.5px] leading-snug normal-case tracking-normal">
+                      <em className="italic">{otherPost.title}</em>
+                    </div>
+                    <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-ink-soft">
+                      Read →
+                    </div>
+                  </Link>
+                )}
+                {/* Shipping status card */}
+                <div
+                  className="border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed"
+                  style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
+                >
+                  <div className="flex items-center gap-2 text-ink font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-dashed border-rule-strong">
+                    <span className="ed-live-dot" aria-hidden="true" />
+                    Shipping
+                  </div>
+                  <div className="text-ink-soft normal-case tracking-normal">
+                    <strong className="text-ink font-semibold">Homepage v2</strong> live · self-hosted runner over Tailscale
+                  </div>
+                </div>
+              </aside>
+
+              {/* CTA — full width on mobile, right-justified on desktop */}
+              <Link
+                href={featuredHref}
+                className="lg:[grid-area:cta] lg:justify-self-end inline-flex items-center justify-center gap-2.5 font-mono text-[12px] sm:text-[11.5px] uppercase tracking-[0.14em] text-paper px-6 py-4 sm:py-3.5 rounded-full hover:-translate-y-0.5 transition-all w-full lg:w-fit relative z-[1]"
+                style={{ background: tabToneColor }}
+              >
+                Read the essay
+                <span aria-hidden="true">→</span>
+              </Link>
             </div>
-
-            {/* aside */}
-            <aside className="lg:[grid-area:aside] flex flex-col gap-4 pt-3">
-              <div
-                className="border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed"
-                style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
-              >
-                <div className="flex items-center gap-2 text-ink font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-dashed border-rule-strong">
-                  <span className="ed-live-dot" aria-hidden="true" />
-                  Shipping now
-                </div>
-                <div className="text-ink-soft normal-case tracking-normal">
-                  <strong className="text-ink font-semibold">rss.ocheverse.ng</strong> serves
-                  stale-while-substack-rate-limits. Push over Tailscale to homelab.
-                </div>
-              </div>
-              <div
-                className="border border-rule-strong p-4 font-mono text-[11.5px] leading-relaxed"
-                style={{ background: "color-mix(in oklab, var(--paper-2) 60%, transparent)" }}
-              >
-                <div className="flex items-center gap-2 text-ed-red font-semibold uppercase tracking-[0.12em] mb-2 pb-1.5 border-b border-solid border-rule-strong">
-                  <span className="inline-block w-2 h-2 rounded-full bg-ed-red" aria-hidden="true" />
-                  Currently reading
-                </div>
-                <div className="text-ink-soft normal-case tracking-normal">
-                  <span style={{ color: "var(--blue)" }}>
-                    <em className="not-italic">Working in Public</em>
-                  </span>{" "}
-                  — Nadia Eghbal. Chapter 4.
-                </div>
-              </div>
-            </aside>
-
-            {/* CTA */}
-            <Link
-              href={featuredHref}
-              className="lg:[grid-area:cta] lg:justify-self-end inline-flex items-center gap-2.5 font-mono text-[11.5px] uppercase tracking-[0.14em] text-paper bg-ed-blue px-6 py-3.5 rounded-full hover:-translate-y-0.5 hover:bg-ed-blue-ink transition-all whitespace-nowrap w-fit"
-            >
-              Read the essay
-              <span aria-hidden="true">→</span>
-            </Link>
           </section>
 
           {/* ============ MARQUEE BAND ============ */}
-          <div className="border-t border-rule-strong border-b border-rule py-3 flex items-center font-mono text-[11px] uppercase tracking-[0.12em] text-ink-soft overflow-hidden">
-            <span className="font-editorial italic text-[14px] normal-case tracking-normal text-ink pr-5 mr-5 border-r border-rule-strong whitespace-nowrap">
+          <div className="border-t border-rule-strong border-b border-rule py-3 flex items-center font-mono text-[10.5px] sm:text-[11px] uppercase tracking-[0.12em] text-ink-soft overflow-hidden">
+            <span className="hidden sm:inline-block font-editorial italic text-[14px] normal-case tracking-normal text-ink pr-5 mr-5 border-r border-rule-strong whitespace-nowrap">
               In this issue —
             </span>
             <div
               className="flex-1 overflow-hidden flex gap-10"
               style={{
                 maskImage:
+                  "linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent)",
+                WebkitMaskImage:
                   "linear-gradient(90deg, transparent, black 40px, black calc(100% - 40px), transparent)",
               }}
             >
@@ -313,7 +377,7 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
           </div>
 
           {/* ============ SHELVES ============ */}
-          <section className="relative pt-20 sm:pt-24 pb-10 grid gap-y-16 lg:gap-x-20 lg:grid-cols-2">
+          <section className="relative pt-14 sm:pt-24 pb-10 grid gap-y-14 sm:gap-y-16 lg:gap-x-20 lg:grid-cols-2">
             <div
               aria-hidden="true"
               className="hidden lg:block absolute top-24 bottom-0 left-1/2 w-px bg-rule"
@@ -340,13 +404,13 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
 
           {/* ============ PRESS STRIP ============ */}
           <section
-            className="mt-20 pt-10 pb-11 grid gap-6 md:grid-cols-[200px_1fr] md:gap-10"
+            className="mt-12 sm:mt-20 pt-8 sm:pt-10 pb-11 grid gap-6 md:grid-cols-[200px_1fr] md:gap-10"
             style={{
               borderTop: "3px double var(--rule-strong)",
               borderBottom: "3px double var(--rule-strong)",
             }}
           >
-            <div className="font-editorial italic text-[26px] leading-none text-ink">
+            <div className="font-editorial italic text-[24px] sm:text-[26px] leading-none text-ink">
               As we go
               <br />
               <em>to press —</em>
@@ -354,7 +418,7 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
                 Live from the homelab
               </small>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-7">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 sm:gap-x-8 gap-y-7">
               <PressItem eb="Shipping" tone="deploy">
                 <em className="not-italic">Ocheverse</em> · self-hosted runner in place
               </PressItem>
@@ -383,14 +447,14 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
           </section>
 
           {/* ============ TOYBOX ============ */}
-          <section className="pt-20 pb-6 grid gap-6 md:gap-10 md:grid-cols-[1fr_auto] items-end border-b border-rule">
+          <section className="pt-14 sm:pt-20 pb-6 grid gap-6 md:gap-10 md:grid-cols-[1fr_auto] items-end border-b border-rule">
             <div>
               <div className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft mb-2">
                 Also in the back pages
               </div>
               <p
-                className="font-editorial italic leading-[0.95] tracking-tight text-ink max-w-[20ch] text-wrap-balance"
-                style={{ fontSize: "clamp(28px, 4.4vw, 58px)" }}
+                className="font-editorial italic leading-[0.95] tracking-tight text-ink max-w-[20ch] text-wrap-balance m-0"
+                style={{ fontSize: "clamp(26px, 5.5vw, 58px)" }}
               >
                 A <em className="not-italic italic" style={{ color: "var(--blue)" }}>snake</em>, a{" "}
                 <em className="not-italic italic" style={{ color: "var(--green)" }}>2048</em>, and one{" "}
@@ -399,15 +463,55 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
               </p>
             </div>
             <div className="flex gap-3 items-center">
-              <ToyLink href="/game" tone="blue">🐍</ToyLink>
-              <ToyLink href="/2048" tone="green">2⁵</ToyLink>
-              <ToyLink href="/guestbook" tone="red">✍︎</ToyLink>
+              <ToyLink href="/game" tone="blue" label="Snake">🐍</ToyLink>
+              <ToyLink href="/2048" tone="green" label="2048">2⁵</ToyLink>
+              <ToyLink href="/guestbook" tone="red" label="Guestbook">✍︎</ToyLink>
             </div>
           </section>
-
         </div>
       </main>
     </>
+  );
+}
+
+// ---------------- TabPicker ----------------
+function TabPicker({ active, onChange, ocheversePost, bpurPost }) {
+  const options = [
+    { id: "ocheverse", label: "Ocheverse", tone: "var(--blue)", disabled: !ocheversePost },
+    { id: "bpur", label: "BPUR", tone: "var(--red)", disabled: !bpurPost },
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6 sm:mb-8 font-mono text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-ink-soft">
+      <span className="text-ink-soft">Cover story —</span>
+      <div className="flex gap-2" role="tablist" aria-label="Featured publication">
+        {options.map((o) => {
+          const isActive = active === o.id;
+          return (
+            <button
+              key={o.id}
+              onClick={() => !o.disabled && onChange(o.id)}
+              disabled={o.disabled}
+              role="tab"
+              aria-selected={isActive}
+              className={`px-3 sm:px-3.5 py-1.5 rounded-full border transition-colors ${
+                isActive
+                  ? "text-paper"
+                  : o.disabled
+                  ? "text-ink-soft opacity-40 cursor-not-allowed"
+                  : "text-ink-soft hover:text-ink border-rule hover:border-rule-strong"
+              }`}
+              style={
+                isActive
+                  ? { background: o.tone, borderColor: o.tone }
+                  : {}
+              }
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -418,18 +522,18 @@ function Shelf({ tone, name, tag, blurb, posts, total, archiveHref }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-4 mb-8 pb-4 border-b border-rule-strong">
+      <div className="flex items-baseline justify-between gap-4 mb-6 sm:mb-8 pb-3 sm:pb-4 border-b border-rule-strong">
         <h2
           className="font-editorial italic font-normal m-0 leading-none tracking-tight"
-          style={{ fontSize: "40px", color: nameColor }}
+          style={{ fontSize: "clamp(30px, 5vw, 42px)", color: nameColor }}
         >
           {name}
         </h2>
-        <span className="font-mono text-[10.5px] tracking-[0.16em] uppercase text-ink-soft">
+        <span className="font-mono text-[10px] sm:text-[10.5px] tracking-[0.16em] uppercase text-ink-soft">
           {tag}
         </span>
       </div>
-      <p className="font-editorial italic text-ink-soft text-[14.5px] -mt-5 mb-8 pl-0.5">
+      <p className="font-editorial italic text-ink-soft text-[14.5px] -mt-4 sm:-mt-5 mb-6 sm:mb-8 pl-0.5">
         {blurb}
       </p>
       <ol className="list-none p-0 m-0 flex flex-col">
@@ -442,38 +546,34 @@ function Shelf({ tone, name, tag, blurb, posts, total, archiveHref }) {
           <li key={p.slug || i}>
             <Link
               href={`/blog/${p.source}/${p.slug}`}
-              className={`ed-post group grid grid-cols-[34px_1fr_auto] items-baseline gap-5 py-5 border-t border-rule text-ink first:border-t-0`}
+              className={`ed-post group grid grid-cols-[28px_1fr_auto] sm:grid-cols-[34px_1fr_auto] items-baseline gap-3 sm:gap-5 py-4 sm:py-5 border-t border-rule text-ink first:border-t-0`}
             >
               <span className="font-mono text-[11px] tracking-[0.1em] text-ink-soft pt-1.5">
                 {String(i + 1).padStart(2, "0")}/
               </span>
               <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
+                <span className="font-mono text-[10px] sm:text-[10.5px] tracking-[0.14em] uppercase text-ink-soft">
                   <em className="not-italic font-semibold" style={{ color: nameColor }}>
                     {tone === "ocheverse" ? "Ocheverse" : "Essay"}
                   </em>{" "}
                   · {p.readingTime} min · {shortDate(p.isoDate)}
                 </span>
                 <span
-                  className="ed-title-link font-editorial italic text-[20px] leading-[1.2] text-ink text-wrap-balance max-w-[34ch]"
-                  style={{
-                    color: "var(--ink)",
-                  }}
+                  className="ed-title-link font-editorial italic text-[17px] sm:text-[20px] leading-[1.2] text-ink max-w-[34ch]"
+                  style={{ color: "var(--ink)" }}
                 >
                   {p.title}
                 </span>
               </div>
-              <span className="font-mono text-[10.5px] tracking-[0.1em] uppercase text-ink-soft pt-2 whitespace-nowrap">
+              <span className="font-mono text-[10px] sm:text-[10.5px] tracking-[0.1em] uppercase text-ink-soft pt-2 whitespace-nowrap">
                 {p.readingTime}′
               </span>
             </Link>
           </li>
         ))}
       </ol>
-      <div className="flex justify-between items-center mt-8 pt-5 border-t border-rule-strong font-mono text-[11px] tracking-[0.12em] uppercase text-ink-soft">
-        <span>
-          {total || posts.length} posts in the archive
-        </span>
+      <div className="flex justify-between items-center mt-6 sm:mt-8 pt-4 sm:pt-5 border-t border-rule-strong font-mono text-[10.5px] sm:text-[11px] tracking-[0.12em] uppercase text-ink-soft">
+        <span>{total || posts.length} posts in the archive</span>
         <Link
           href={archiveHref}
           className={`text-ink pb-0.5 border-b-[1.5px] border-transparent transition-colors ${hoverBorder}`}
@@ -520,13 +620,14 @@ function PressItem({ eb, tone, children }) {
 }
 
 // ---------------- ToyLink ----------------
-function ToyLink({ href, tone, children }) {
+function ToyLink({ href, tone, children, label }) {
   const color =
     tone === "blue" ? "var(--blue)" : tone === "green" ? "var(--green)" : "var(--red)";
   return (
     <Link
       href={href}
-      className="grid place-items-center w-[74px] h-[74px] border-[1.5px] border-rule-strong bg-paper font-editorial italic text-[30px] hover:-translate-y-1 hover:-rotate-3 transition-transform"
+      aria-label={label}
+      className="grid place-items-center w-[64px] h-[64px] sm:w-[74px] sm:h-[74px] border-[1.5px] border-rule-strong bg-paper font-editorial italic text-[26px] sm:text-[30px] hover:-translate-y-1 hover:-rotate-3 transition-transform"
       style={{
         color,
         boxShadow: "4px 4px 0 var(--rule-strong)",

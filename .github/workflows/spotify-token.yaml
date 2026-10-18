@@ -1,0 +1,92 @@
+name: Spotify token keepalive
+
+# Exercises the Spotify refresh token on a schedule.
+# - Spotify rotates the token  -> save the new one to Vault, then redeploy so
+#                                 the container picks it up.
+# - Spotify revoked the token  -> fail the run (GitHub emails you). A revoked
+#                                 token needs a one-time browser re-auth; no job
+#                                 can fix that on its own.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write # to dispatch the deploy workflow after a rotation
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  VAULT_ADDR: https://vault.ocheverse.ng
+
+jobs:
+  keepalive:
+    runs-on: [self-hosted, contabo]
+    steps:
+      - name: Read Spotify secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ env.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_SPOTIFY_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SPOTIFY_SECRET_ID }}
+          exportToken: true
+          secrets: |
+            secret/data/ocheverse/web SPOTIFY_CLIENT_ID ;
+            secret/data/ocheverse/web SPOTIFY_CLIENT_SECRET ;
+            secret/data/ocheverse/web SPOTIFY_REFRESH_TOKEN
+
+      - name: Refresh token
+        id: refresh
+        run: |
+          set -euo pipefail
+          resp=$(curl -sS -u "$SPOTIFY_CLIENT_ID:$SPOTIFY_CLIENT_SECRET" \
+            -d grant_type=refresh_token \
+            --data-urlencode "refresh_token=$SPOTIFY_REFRESH_TOKEN" \
+            https://accounts.spotify.com/api/token)
+
+          if [ "$(jq -r '.access_token // empty' <<<"$resp")" = "" ]; then
+            echo "::error title=Spotify token rejected::$(jq -r '"\(.error): \(.error_description)"' <<<"$resp"). Re-authorize once in the browser, then rerun this workflow."
+            exit 1
+          fi
+
+          new=$(jq -r '.refresh_token // empty' <<<"$resp")
+          if [ -n "$new" ] && [ "$new" != "$SPOTIFY_REFRESH_TOKEN" ]; then
+            echo "::add-mask::$new"
+            echo "Spotify rotated the refresh token."
+            echo "rotated=true" >> "$GITHUB_OUTPUT"
+            printf '%s' "$new" > "$RUNNER_TEMP/new_refresh_token"
+          else
+            echo "Token is healthy; no rotation."
+            echo "rotated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save rotated token to Vault
+        if: steps.refresh.outputs.rotated == 'true'
+        run: |
+          set -euo pipefail
+          jq -n --rawfile t "$RUNNER_TEMP/new_refresh_token" \
+            '{data: {SPOTIFY_REFRESH_TOKEN: $t}}' |
+          curl -sS --fail-with-body -X PATCH \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            -H "Content-Type: application/merge-patch+json" \
+            --data-binary @- \
+            "$VAULT_ADDR/v1/secret/data/ocheverse/web" > /dev/null
+          rm -f "$RUNNER_TEMP/new_refresh_token"
+          echo "Saved to Vault."
+
+      - name: Redeploy so the site uses the new token
+        if: steps.refresh.outputs.rotated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/main.yaml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "Deploy dispatched."
+
+      - name: Clean up
+        if: always()
+        run: rm -f "$RUNNER_TEMP/new_refresh_token"

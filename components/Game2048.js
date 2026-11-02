@@ -305,7 +305,7 @@ export default function Game2048() {
                 </button>
             </div>
 
-            <div className="relative bg-gray-800 p-2 sm:p-4 rounded-xl cursor-default select-none w-full max-w-[400px] aspect-square"
+            <div className="relative bg-gray-800 p-2 sm:p-4 rounded-xl cursor-default select-none w-full max-w-[400px] aspect-square touch-none"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}>
 

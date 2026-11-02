@@ -86,8 +86,9 @@ export default function SnakeGame() {
                 case 'ArrowLeft': if (direction !== 'RIGHT') setDirection('LEFT'); break;
                 case 'ArrowRight': if (direction !== 'LEFT') setDirection('RIGHT'); break;
                 case ' ': setIsPaused(p => !p); break;
-                default: break;
+                default: return;
             }
+            e.preventDefault(); // Prevent arrow keys / space from scrolling the page
         };
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
@@ -141,7 +142,7 @@ export default function SnakeGame() {
                 </div>
             </div>
 
-            <div className="relative bg-black border-4 border-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[400px] aspect-square"
+            <div className="relative bg-black border-4 border-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[400px] aspect-square touch-none"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}>
 

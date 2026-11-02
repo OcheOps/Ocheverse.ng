@@ -99,8 +99,8 @@ export default function CommandPalette() {
                     <Command.Group heading="Actions" className="text-xs font-bold text-gray-400 dark:text-gray-500 px-2 py-1 mb-1 mt-2">
                         <Item onSelect={() => runCommand(() => {
                             const link = document.createElement('a');
-                            link.href = '/DavidGideonNdfrekeabasi.pdf';
-                            link.download = 'DavidGideonNdfrekeabasi.pdf';
+                            link.href = '/David_Gideon_CV.pdf';
+                            link.download = 'David_Gideon_CV.pdf';
                             link.click();
                         })} icon="📄">Download CV</Item>
 

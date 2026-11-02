@@ -172,7 +172,7 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
               alternateName: "OcheOps",
               url: "https://ocheverse.ng",
               image: "https://ocheverse.ng/profile.jpg",
-              jobTitle: "DevOps Engineer & Solutions Architect",
+              jobTitle: "Cloud & Platform Engineer, Solutions Architect, DevSecOps",
               description:
                 "DevOps engineer & infrastructure storyteller. Two publications, one author.",
               sameAs: [

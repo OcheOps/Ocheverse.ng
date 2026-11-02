@@ -98,7 +98,7 @@ export default function Navbar() {
                     <span className="w-px h-4 bg-rule-strong mx-1" aria-hidden="true" />
 
                     <a
-                        href="/DavidGideonNdfrekeabasi.pdf"
+                        href="/David_Gideon_CV.pdf"
                         download
                         className="text-ink-soft hover:text-ink transition-colors"
                     >
@@ -156,7 +156,7 @@ export default function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
-                        <a href="/DavidGideonNdfrekeabasi.pdf" download className="py-2 border-b border-rule text-ink-soft">
+                        <a href="/David_Gideon_CV.pdf" download className="py-2 border-b border-rule text-ink-soft">
                             Download CV
                         </a>
                         <a href="mailto:ocheworks@gmail.com" className="py-2 border-b border-rule text-ink-soft">

@@ -20,6 +20,12 @@ const nextConfig = {
       { protocol: 'https', hostname: 'unpkg.com' },
     ],
   },
+  async redirects() {
+    return [
+      // Old CV URL (misspelled name) — keep existing links working
+      { source: '/DavidGideonNdfrekeabasi.pdf', destination: '/David_Gideon_CV.pdf', permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       { source: '/sitemap.xml', destination: '/api/sitemap' },

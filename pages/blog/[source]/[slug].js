@@ -10,6 +10,7 @@ import ReadingProgress from "../../../components/ReadingProgress";
 import BackToTop from "../../../components/BackToTop";
 import CopyCodeButton from "../../../components/CopyCodeButton";
 import Reactions from "../../../components/Reactions";
+import SubscribePrompt from "../../../components/SubscribePrompt";
 
 export async function getStaticPaths() {
   const parser = createParser();
@@ -309,6 +310,13 @@ export default function BlogPost({ post, relatedPosts = [] }) {
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
+            {/* Subscribe popup — fires once the reader reaches this point */}
+            <SubscribePrompt
+              source={post.source}
+              sourceName={post.sourceName}
+              toneColor={toneColor}
+            />
+
             {/* Mobile reactions */}
             <div className="lg:hidden mt-14 text-center">
               <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-ink-soft mb-3">
@@ -334,29 +342,18 @@ export default function BlogPost({ post, relatedPosts = [] }) {
               >
                 Subscribe to <em style={{ color: toneColor }}>{post.sourceName}</em>.
               </h3>
-              <form
-                action={`https://${post.source === "ocheverse" ? "ocheverse" : "bpur"}.substack.com/subscribe`}
-                target="_blank"
-                method="GET"
-                className="flex flex-col sm:flex-row gap-3"
-              >
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="you@example.com"
-                  className="flex-1 bg-transparent border border-rule-strong px-4 py-3 font-mono text-[13px] text-ink placeholder-ink-soft focus:outline-none focus:border-ink"
-                  style={{ borderRadius: 0 }}
+              {/* Substack's signup embed — subscribe without leaving the site */}
+              <div className="border border-rule">
+                <iframe
+                  src={`https://${post.source === "ocheverse" ? "ocheverse" : "bpur"}.substack.com/embed`}
+                  title={`Subscribe to ${post.sourceName}`}
+                  width="100%"
+                  height="320"
+                  loading="lazy"
+                  style={{ border: 0, display: "block" }}
+                  scrolling="no"
                 />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center gap-2 font-mono text-[11.5px] uppercase tracking-[0.14em] text-paper px-6 py-3 whitespace-nowrap transition-all hover:-translate-y-0.5"
-                  style={{ background: toneColor, borderRadius: 0 }}
-                >
-                  Subscribe
-                  <span aria-hidden="true">→</span>
-                </button>
-              </form>
+              </div>
             </div>
 
             {/* Related posts / back pages */}

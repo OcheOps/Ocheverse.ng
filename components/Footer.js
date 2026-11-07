@@ -50,6 +50,21 @@ export default function Footer() {
                 </div>
             </div>
 
+            {/* Around the site */}
+            <nav aria-label="Site" className="border-t border-rule">
+                <div className="max-w-[1240px] mx-auto px-5 sm:px-10 py-4 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-soft">
+                    <Link href="/hire" className="text-ed-blue hover:text-ink">Hire me</Link>
+                    <Link href="/projects" className="hover:text-ink">Projects</Link>
+                    <Link href="/guides" className="hover:text-ink">Guides</Link>
+                    <Link href="/speaking" className="hover:text-ink">Speaking</Link>
+                    <Link href="/learn" className="hover:text-ink">Classes</Link>
+                    <Link href="/music" className="hover:text-ink">Music</Link>
+                    <Link href="/guestbook" className="hover:text-ink">Guestbook</Link>
+                    <Link href="/resources" className="hover:text-ink">Resources</Link>
+                    <Link href="/game" className="hover:text-ink">Arcade</Link>
+                </div>
+            </nav>
+
             <div className="border-t border-rule">
                 <div className="max-w-[1240px] mx-auto px-5 sm:px-10 py-4 flex flex-wrap justify-between items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
                     <span>© {year} · Ocheverse.ng</span>

@@ -1,10 +1,15 @@
-import { createParser, FEEDS } from "../../lib/rssParser";
+import { createParser, parseFeedResilient } from "../../lib/rssParser";
+import { publishedGuides } from "../../data/guides";
 
 const SITE_URL = "https://ocheverse.ng";
 
 const staticPages = [
   { path: "/", priority: "1.0", changefreq: "weekly" },
   { path: "/blog", priority: "0.9", changefreq: "daily" },
+  { path: "/hire", priority: "0.9", changefreq: "monthly" },
+  { path: "/projects", priority: "0.8", changefreq: "weekly" },
+  { path: "/guides", priority: "0.8", changefreq: "weekly" },
+  { path: "/speaking", priority: "0.6", changefreq: "monthly" },
   { path: "/now", priority: "0.7", changefreq: "monthly" },
   { path: "/learn", priority: "0.6", changefreq: "monthly" },
   { path: "/resources", priority: "0.6", changefreq: "monthly" },
@@ -19,14 +24,11 @@ export default async function handler(req, res) {
   const parser = createParser();
   let blogEntries = [];
 
-  const feeds = [
-    { source: "ocheverse", url: FEEDS.ocheverse },
-    { source: "bpur", url: FEEDS.bpur },
-  ];
+  const feeds = [{ source: "ocheverse" }, { source: "bpur" }];
 
   for (const feed of feeds) {
     try {
-      const parsed = await parser.parseURL(feed.url);
+      const parsed = await parseFeedResilient(parser, feed.source);
       parsed.items.forEach((item) => {
         let slug = item.link.split("/").pop();
         if (slug.includes("?")) slug = slug.split("?")[0];
@@ -42,7 +44,14 @@ export default async function handler(req, res) {
     }
   }
 
-  const allPages = [...staticPages, ...blogEntries];
+  const guideEntries = publishedGuides().map((g) => ({
+    path: `/guides/${g.slug}`,
+    lastmod: new Date(g.date).toISOString(),
+    priority: "0.8",
+    changefreq: "monthly",
+  }));
+
+  const allPages = [...staticPages, ...guideEntries, ...blogEntries];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

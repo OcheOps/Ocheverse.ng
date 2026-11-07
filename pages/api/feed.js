@@ -1,17 +1,17 @@
-import { createParser, FEEDS } from "../../lib/rssParser";
+import { createParser, parseFeedResilient } from "../../lib/rssParser";
 
 export default async function handler(req, res) {
   const parser = createParser();
   let allItems = [];
 
   const feeds = [
-    { source: "ocheverse", url: FEEDS.ocheverse, label: "Ocheverse" },
-    { source: "bpur", url: FEEDS.bpur, label: "BPUR" },
+    { source: "ocheverse", label: "Ocheverse" },
+    { source: "bpur", label: "BPUR" },
   ];
 
   for (const feed of feeds) {
     try {
-      const parsed = await parser.parseURL(feed.url);
+      const parsed = await parseFeedResilient(parser, feed.source);
       parsed.items.forEach((item) => {
         let slug = item.link.split("/").pop();
         if (slug.includes("?")) slug = slug.split("?")[0];

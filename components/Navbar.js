@@ -44,11 +44,18 @@ export default function Navbar() {
     const isActive = (path) =>
         path === '/' ? router.pathname === '/' : router.pathname.startsWith(path);
 
+    // Primary nav: what recruiters and readers need first
     const navLinks = [
         { name: 'Home', path: '/' },
         { name: 'Archive', path: '/blog' },
+        { name: 'Guides', path: '/guides' },
+        { name: 'Projects', path: '/projects' },
+        { name: 'Speaking', path: '/speaking' },
         { name: 'Now', path: '/now' },
         { name: 'Stack', path: '/stack' },
+    ];
+    // Secondary: mobile menu + footer only
+    const moreLinks = [
         { name: 'Music', path: '/music' },
         { name: 'Guestbook', path: '/guestbook' },
         { name: 'Resources', path: '/resources' },
@@ -62,7 +69,7 @@ export default function Navbar() {
             <div className="max-w-[1240px] mx-auto px-5 sm:px-10 h-[60px] grid grid-cols-[1fr_auto_1fr] items-center gap-6">
 
                 {/* Left: issue meta */}
-                <div className="hidden md:flex gap-4 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">
+                <div className="hidden 2xl:flex gap-4 font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-soft">
                     <span>Est. <b className="text-ink font-medium">2024</b></span>
                     <span>·</span>
                     <span>Lagos · <b className="text-ink font-medium">{todayShort || '—'}</b></span>
@@ -79,12 +86,12 @@ export default function Navbar() {
                 </Link>
 
                 {/* Right: nav */}
-                <nav className="hidden md:flex items-center gap-4 justify-end font-mono text-[11px] uppercase tracking-[0.12em]" aria-label="Primary">
+                <nav className="hidden lg:flex items-center gap-4 justify-end font-mono text-[11px] uppercase tracking-[0.12em]" aria-label="Primary">
                     {navLinks.slice(1).map((link) => (
                         <Link
                             key={link.path}
                             href={link.path}
-                            className={`relative py-1 transition-colors ${
+                            className={`relative py-1 whitespace-nowrap transition-colors ${
                                 isActive(link.path) ? 'text-ink' : 'text-ink-soft hover:text-ink'
                             }`}
                         >
@@ -104,6 +111,15 @@ export default function Navbar() {
                     >
                         CV
                     </a>
+
+                    <Link
+                        href="/hire"
+                        className={`px-3 py-1 rounded-full whitespace-nowrap transition-colors ${
+                            isActive('/hire') ? 'bg-ink text-paper' : 'bg-ed-blue text-paper hover:bg-ed-blue-ink'
+                        }`}
+                    >
+                        Hire me
+                    </Link>
 
                     <button
                         onClick={toggleTheme}
@@ -126,7 +142,7 @@ export default function Navbar() {
                 {/* Mobile toggle */}
                 <button
                     onClick={() => setIsOpen((v) => !v)}
-                    className="md:hidden justify-self-end text-ink"
+                    className="lg:hidden justify-self-end text-ink"
                     aria-label="Toggle menu"
                     aria-expanded={isOpen}
                 >
@@ -142,9 +158,16 @@ export default function Navbar() {
 
             {/* Mobile menu */}
             {isOpen && (
-                <div className="md:hidden border-t border-rule-strong bg-paper">
+                <div className="lg:hidden border-t border-rule-strong bg-paper">
                     <nav className="max-w-[1240px] mx-auto px-5 py-4 flex flex-col gap-1 font-mono text-[12px] uppercase tracking-[0.12em]">
-                        {navLinks.map((link) => (
+                        <Link
+                            href="/hire"
+                            onClick={() => setIsOpen(false)}
+                            className="py-2 border-b border-rule text-ed-blue font-semibold"
+                        >
+                            Hire me →
+                        </Link>
+                        {[...navLinks, ...moreLinks].map((link) => (
                             <Link
                                 key={link.path}
                                 href={link.path}

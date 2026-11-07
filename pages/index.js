@@ -196,10 +196,13 @@ export default function Home({ featured, ocheverseLatest, bpurLatest, totals, ma
             </span>
             <span aria-hidden="true">·</span>
             <span>Two publications · One author</span>
-            <span className="ml-auto hidden sm:inline-flex items-center gap-2 text-ink">
+            <Link
+              href="/hire"
+              className="ml-auto inline-flex items-center gap-2 text-ink hover:text-ed-blue transition-colors"
+            >
               <span className="ed-live-dot" aria-hidden="true" />
-              Weekly-ish
-            </span>
+              Open to new roles — <span className="text-ed-blue">hire me →</span>
+            </Link>
           </div>
 
           {/* ============ HERO ============ */}

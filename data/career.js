@@ -17,7 +17,7 @@ export const profile = {
   github: "https://github.com/OcheOps",
   cv: "/David_Gideon_CV.pdf",
   // Set to a Cal.com / Calendly URL to show a "Book a call" button
-  bookingUrl: null,
+  bookingUrl: "https://cal.com/oche-wur6t1",
   certificationsUrl: "https://www.linkedin.com/in/gideonodavid/details/certifications/",
 };
 

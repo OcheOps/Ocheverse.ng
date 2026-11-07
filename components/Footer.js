@@ -68,7 +68,7 @@ export default function Footer() {
             <div className="border-t border-rule">
                 <div className="max-w-[1240px] mx-auto px-5 sm:px-10 py-4 flex flex-wrap justify-between items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">
                     <span>© {year} · Ocheverse.ng</span>
-                    <span>No trackers · No pop-ups · <Link href="/guestbook" className="text-ink hover:text-ed-blue">Leave a note</Link></span>
+                    <span>No trackers · No ads · <Link href="/guestbook" className="text-ink hover:text-ed-blue">Leave a note</Link></span>
                 </div>
             </div>
         </footer>

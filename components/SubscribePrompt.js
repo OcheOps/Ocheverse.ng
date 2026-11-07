@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 // Shown once a reader has reached the end of a post (sentinel scrolled into
 // view) AND spent a minimum amount of time on the page. Uses Substack's
@@ -107,7 +108,10 @@ export default function SubscribePrompt({ source, sourceName, toneColor }) {
       {/* Invisible marker at the end of the article */}
       <div ref={sentinelRef} aria-hidden="true" style={{ height: 1 }} />
 
-      {open && (
+      {/* Portal to <body>: escapes the article's stacking context so the
+          footer and navbar can't paint over the popup */}
+      {open &&
+        createPortal(
         <div
           className="ed-sub-backdrop fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6"
           style={{ background: "color-mix(in oklab, var(--ink) 45%, transparent)" }}
@@ -187,8 +191,9 @@ export default function SubscribePrompt({ source, sourceName, toneColor }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
       <style jsx global>{`
         @keyframes ed-sub-fade {

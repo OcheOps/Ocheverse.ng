@@ -12,7 +12,7 @@ export const guides = [
     minutes: 12,
     tags: ["GitHub Actions", "Tailscale", "Docker", "Buildx"],
     date: "2026-11-07",
-    draft: true,
+    draft: false,
     body: [
       { h2: "The situation" },
       {
@@ -116,7 +116,7 @@ cache-to: type=inline`,
     minutes: 10,
     tags: ["Vault", "Backups", "SSH", "Tailscale", "Uptime Kuma"],
     date: "2026-11-07",
-    draft: true,
+    draft: false,
     body: [
       { h2: "Why bother" },
       {

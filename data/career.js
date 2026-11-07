@@ -19,6 +19,7 @@ export const profile = {
   // Set to a Cal.com / Calendly URL to show a "Book a call" button
   bookingUrl: "https://cal.com/oche-wur6t1",
   certificationsUrl: "https://www.linkedin.com/in/gideonodavid/details/certifications/",
+  credlyUrl: "https://www.credly.com/users/oche-gideon",
 };
 
 export const impact = [
@@ -152,10 +153,10 @@ export const certifications = [
   {
     group: "Architecture & strategy",
     items: [
-      { issuer: "AWS", name: "Solutions Architect – Professional" },
-      { issuer: "AWS", name: "Advanced Networking – Specialty", date: "Aug 2025" },
-      { issuer: "AWS", name: "AI Business Strategist", date: "Oct 2026" },
-      { issuer: "Google Cloud", name: "Professional Cloud Architect", date: "Jan 2026" },
+      { issuer: "AWS", name: "Solutions Architect – Professional", verify: "https://www.credly.com/badges/1d840d8b-82ee-4396-aec2-ae0335ad148e" },
+      { issuer: "AWS", name: "Advanced Networking – Specialty", date: "Aug 2025", verify: "https://www.credly.com/badges/450a28ac-e6d5-4bc7-90e7-e8d02f50bb94" },
+      { issuer: "AWS", name: "AI Business Strategist", date: "Oct 2026", verify: "https://www.credly.com/badges/9736af63-f73a-4de7-879a-c9e01d37be98" },
+      { issuer: "Google Cloud", name: "Professional Cloud Architect", date: "Jan 2026", verify: "https://www.credly.com/badges/0fc7b78e-f826-4846-95c1-4182212829f5" },
       { issuer: "Microsoft", name: "Azure Solutions Architect Expert", date: "Mar 2026" },
     ],
   },
@@ -167,15 +168,15 @@ export const certifications = [
       { issuer: "Microsoft", name: "Azure Developer Associate", date: "Mar 2025" },
       { issuer: "Oracle", name: "OCI Multicloud Architect Professional", date: "Oct 2025" },
       { issuer: "Oracle", name: "OCI Architect", date: "Oct 2025" },
-      { issuer: "AWS", name: "Solutions Architect – Associate", date: "Jul 2025" },
+      { issuer: "AWS", name: "Solutions Architect – Associate", date: "Jul 2025", verify: "https://www.credly.com/badges/b482cf4f-a96c-4758-892f-25ca6d575abc" },
     ],
   },
   {
     group: "Platform & security",
     items: [
-      { issuer: "CNCF", name: "Kubernetes and Cloud Native Associate (KCNA)", date: "May 2025" },
+      { issuer: "CNCF", name: "Kubernetes and Cloud Native Associate (KCNA)", date: "May 2025", verify: "https://www.credly.com/badges/2c099085-271e-4b82-a684-b9af4d70129f" },
       { issuer: "Gremlin", name: "Certified Chaos Engineering Practitioner" },
-      { issuer: "Tigera", name: "Certified Calico Operator: AWS Expert" },
+      { issuer: "Tigera", name: "Certified Calico Operator: AWS Expert", verify: "https://www.credly.com/badges/ad080d1c-0188-43d6-9776-2bd97044f267" },
       { issuer: "ISO", name: "ISO/IEC 27001:2022 Information Security Associate" },
     ],
   },

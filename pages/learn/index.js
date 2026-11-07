@@ -3,13 +3,13 @@ import Link from "next/link";
 import { profile } from "../../data/career";
 
 // ---- Edit prices and schedule here ----
-const SCHEDULE = { when: "Every Saturday, 5:00pm WAT", where: "Online" };
+const SCHEDULE = { when: "Flexible times, scheduled around you", where: "Online" };
 
 const PLANS = [
   {
     id: "group",
     name: "Group class",
-    price: "₦2,000",
+    price: "₦8,000",
     unit: "per person / session",
     tone: "var(--blue)",
     perks: ["2-hour live class + Q&A", "Recording shared after class", "Beginner-friendly, real projects"],
@@ -18,7 +18,7 @@ const PLANS = [
   {
     id: "coaching",
     name: "1-on-1 coaching",
-    price: "₦5,000",
+    price: "₦10,000",
     unit: "per session",
     tone: "var(--red)",
     perks: ["Personalized roadmap", "Hands-on guidance & feedback", "We work on your goals"],
@@ -177,7 +177,7 @@ export default function Learn() {
           style={{ borderTop: "3px double var(--rule-strong)", borderBottom: "3px double var(--rule-strong)" }}
         >
           <h2 className="ed-headline m-0" style={{ fontSize: "clamp(28px, 4.2vw, 52px)", lineHeight: 1 }}>
-            Ready to start? Join us on <em style={{ color: "var(--green)" }}>Saturday</em>.
+            Ready to start? We’ll find a time that <em style={{ color: "var(--green)" }}>works for you</em>.
           </h2>
           <a
             href={waLink("Hi Oche, I'm ready to start learning!")}

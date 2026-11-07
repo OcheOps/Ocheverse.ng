@@ -20,8 +20,17 @@ export async function getStaticProps() {
     }
   }
 
+  // Public badge count from Credly (verifiable record); null if unreachable
+  let credlyCount = null;
+  try {
+    const res = await fetch(`${profile.credlyUrl}/badges.json`, { headers: { Accept: "application/json" } });
+    if (res.ok) credlyCount = (await res.json())?.data?.length ?? null;
+  } catch {
+    /* hide the count */
+  }
+
   return {
-    props: { projects: enriched, postCounts: counts },
+    props: { projects: enriched, postCounts: counts, credlyCount },
     revalidate: 3600,
   };
 }
@@ -34,7 +43,7 @@ const ISSUER_COLOR = {
   CNCF: "var(--blue)",
 };
 
-export default function Hire({ projects: liveProjects, postCounts }) {
+export default function Hire({ projects: liveProjects, postCounts, credlyCount }) {
   const certCount = certifications.reduce((n, g) => n + g.items.length, 0);
   const totalPosts = (postCounts?.ocheverse || 0) + (postCounts?.bpur || 0);
   const pathsInTech = liveProjects.find((p) => p.slug === "paths-in-tech");
@@ -228,10 +237,14 @@ export default function Hire({ projects: liveProjects, postCounts }) {
           title="Certified across every major cloud"
           tone="var(--blue)"
           aside={
-            <a href={profile.certificationsUrl} target="_blank" rel="noreferrer"
-              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink hover:text-ed-blue">
-              Verify on LinkedIn ↗
-            </a>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em]">
+              <a href={profile.credlyUrl} target="_blank" rel="noreferrer" className="text-ink hover:text-ed-blue">
+                {credlyCount ? `${credlyCount} badges on Credly ↗` : "Verify on Credly ↗"}
+              </a>
+              <a href={profile.certificationsUrl} target="_blank" rel="noreferrer" className="text-ink-soft hover:text-ed-blue">
+                LinkedIn ↗
+              </a>
+            </div>
           }
         >
           <div className="grid gap-10 lg:grid-cols-3">
@@ -250,7 +263,17 @@ export default function Hire({ projects: liveProjects, postCounts }) {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft">{c.issuer}</div>
-                        <div className="font-editorial text-ink text-[15.5px] leading-snug">{c.name}</div>
+                        {c.verify ? (
+                          <a href={c.verify} target="_blank" rel="noreferrer"
+                            className="font-editorial text-ink text-[15.5px] leading-snug hover:text-ed-blue">
+                            {c.name}{" "}
+                            <span className="font-mono not-italic text-[9.5px] uppercase tracking-[0.12em] text-ed-green whitespace-nowrap">
+                              Verified ✓
+                            </span>
+                          </a>
+                        ) : (
+                          <div className="font-editorial text-ink text-[15.5px] leading-snug">{c.name}</div>
+                        )}
                       </div>
                       {c.date && (
                         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft whitespace-nowrap">
